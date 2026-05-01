@@ -1,0 +1,20 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/icon.svg/route": "app/icon.svg/route.js",
+  "/api/agent/log/route": "app/api/agent/log/route.js",
+  "/api/agent/tick/route": "app/api/agent/tick/route.js",
+  "/api/agent/decide/route": "app/api/agent/decide/route.js",
+  "/api/decisions/route": "app/api/decisions/route.js",
+  "/api/keeperhub/call/route": "app/api/keeperhub/call/route.js",
+  "/api/keeperhub/route": "app/api/keeperhub/route.js",
+  "/api/kv/route": "app/api/kv/route.js",
+  "/api/positions/route": "app/api/positions/route.js",
+  "/api/healthz/route": "app/api/healthz/route.js",
+  "/opengraph-image/route": "app/opengraph-image/route.js",
+  "/api/proof/route": "app/api/proof/route.js",
+  "/benchmark/page": "app/benchmark/page.js",
+  "/simulate/page": "app/simulate/page.js",
+  "/agents/page": "app/agents/page.js",
+  "/page": "app/page.js",
+  "/notes/page": "app/notes/page.js"
+}

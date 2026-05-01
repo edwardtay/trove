@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "regions": ["iad1"],
+  "env": {
+    "PRIVATE_KEY": "@private_key",
+    "ZG_RPC_URL": "https://evmrpc-testnet.0g.ai",
+    "ZG_INDEXER_URL": "https://indexer-storage-testnet-turbo.0g.ai",
+    "KEEPERHUB_API_KEY": "@keeperhub_api_key",
+    "NEXT_PUBLIC_SITE_URL": "@next_public_site_url",
+    "NEXT_PUBLIC_INFT_ADDRESS": "0x390c17AC063F7E64c93ccC1E3a9381b14D68fB64",
+    "NEXT_PUBLIC_INFT_TOKEN_ID": "0",
+    "NEXT_PUBLIC_PRIVY_APP_ID": "@privy_app_id"
+  },
+  "_notes": [
+    "Set the @-prefixed secrets via `vercel env add` or the dashboard.",
+    "PRIVATE_KEY is required for /api/agent/log to upload decisions to 0G Storage.",
+    "KEEPERHUB_API_KEY enables the live KeeperHub status panel in /notes#status.",
+    "NEXT_PUBLIC_SITE_URL should be the deployed app origin so x402 resource offers point to the live endpoint.",
+    "NEXT_PUBLIC_PRIVY_APP_ID flips the wallet button from 'demo mode' to live."
+  ]
+}

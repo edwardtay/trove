@@ -1,0 +1,32 @@
+# Build artifacts and deps — rebuilt inside the Docker stages
+node_modules
+.next
+out
+dist
+
+# Hardhat artifacts (the Next.js build doesn't need them)
+artifacts
+cache
+typechain-types
+
+# Local-only files
+.env
+.env.local
+.env.*.local
+.git
+.github
+.vscode
+.idea
+.claude
+
+# Tests / dev tooling
+test
+coverage
+*.log
+.DS_Store
+tsconfig.tsbuildinfo
+
+# Misc — og-state.json is needed at runtime for /api/decisions
+README.md
+CONTRIBUTING.md
+keeperhub-workflow.json

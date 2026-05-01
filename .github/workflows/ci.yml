@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: typecheck + test + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+        # React 19 + @privy-io/react-auth peer-dep conflict — known, harmless.
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+        # 25 deterministic tests across policy / simulate / benchmark.
+        # No on-chain dependencies — these don't hit testnets.
+
+      - name: Build (Next.js production)
+        run: npm run build
+        env:
+          # Build doesn't need real values, just non-empty placeholders so
+          # process.env reads don't choke during static optimization.
+          NEXT_PUBLIC_PRIVY_APP_ID: ""
+
+  contracts:
+    name: solidity compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Compile Solidity
+        run: npx hardhat compile
+        # Compiles StableRotatorAgent.sol + RoyaltyRouter.sol with
+        # viaIR + cancun EVM target. No deploy, just compile.

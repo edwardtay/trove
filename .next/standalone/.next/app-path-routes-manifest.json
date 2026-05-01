@@ -1,0 +1,20 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/icon.svg/route": "/icon.svg",
+  "/api/agent/log/route": "/api/agent/log",
+  "/api/agent/tick/route": "/api/agent/tick",
+  "/api/agent/decide/route": "/api/agent/decide",
+  "/api/decisions/route": "/api/decisions",
+  "/api/keeperhub/call/route": "/api/keeperhub/call",
+  "/api/keeperhub/route": "/api/keeperhub",
+  "/api/kv/route": "/api/kv",
+  "/api/positions/route": "/api/positions",
+  "/api/healthz/route": "/api/healthz",
+  "/opengraph-image/route": "/opengraph-image",
+  "/api/proof/route": "/api/proof",
+  "/benchmark/page": "/benchmark",
+  "/simulate/page": "/simulate",
+  "/agents/page": "/agents",
+  "/page": "/",
+  "/notes/page": "/notes"
+}

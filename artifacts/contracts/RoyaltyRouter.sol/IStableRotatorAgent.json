@@ -1,0 +1,104 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IStableRotatorAgent",
+  "sourceName": "contracts/RoyaltyRouter.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "agents",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minApyDeltaBps",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minHoldingDays",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "safetyMarginBps",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "harvester",
+          "type": "bool"
+        },
+        {
+          "internalType": "string",
+          "name": "configHash",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "memoryHash",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalDecisions",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalRebalances",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalHarvests",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "clonedFrom",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "createdAt",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "ownerOf",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

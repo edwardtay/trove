@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  /* Warm neutral palette — stone, not cool gray. Reads as paper, not screen. */
+  --bg: #fafaf9;
+  --bg-elev: #ffffff;
+  --bg-subtle: #f5f5f4;
+  --border: #e7e5e4;
+  --border-strong: #d6d3d1;
+  --fg: #1c1917;
+  --fg-muted: #57534e;
+  --fg-subtle: #78716c;
+  --fg-faint: #a8a29e;
+  --accent: #059669;
+  --accent-soft: #ecfdf5;
+  --rose: #be123c;
+  --rose-soft: #fff1f2;
+  --amber: #b45309;
+  --amber-soft: #fffbeb;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  /* Inter variable font features: tabular numbers, single-storey 'a'/'g',
+     optical sizing for headings. */
+  font-feature-settings: "cv11", "ss01", "ss03";
+  font-variation-settings: "opsz" 14;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle paper-grain texture — too quiet to "see," loud enough to feel.
+   Only applied to body so cards (var(--bg-elev)) read as cleaner. */
+body {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(28, 25, 23, 0.018) 1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
+/* Tabular nums everywhere by default — financial data has to align */
+.tabular-nums, table, dd, .font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Headings: tighter tracking, larger optical size, balanced wrapping
+   (so "Earn the yield / you're missing." wraps without stranding a single
+   short word on its own line). */
+h1, h2, h3 {
+  font-feature-settings: "ss01", "ss03", "cv11";
+  font-variation-settings: "opsz" 32;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Paragraphs: prevent orphans (the "stake." alone on a line problem) by
+   using text-wrap: pretty. Browsers that don't support it (older Firefox,
+   Safari < 17.4) silently fall back to default wrapping — no breakage. */
+p, dd, li {
+  text-wrap: pretty;
+}
+
+/* Code: deliberate mono, kerning preserved for hashes */
+code, pre, .font-mono {
+  font-feature-settings: normal; /* no ligatures in code */
+}
+
+/* Scrollbar — thin, warm, only when needed */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* Selection — emerald tint, low alpha */
+::selection {
+  background: rgba(5, 150, 105, 0.15);
+}
+
+/* Anchor offset for the sticky TOC — keep the heading visible below the top */
+:target {
+  scroll-margin-top: 1.5rem;
+}
+
+/* Refined card primitive: hairline border + subtle inner highlight,
+   no drop shadow. The "elevated" feel comes from the warm bg vs white card. */
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.7) inset,
+    0 1px 0 rgba(28, 25, 23, 0.02);
+}
+
+.card-strong {
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+    0 1px 2px rgba(28, 25, 23, 0.04);
+}
+
+/* Hairline rule — for inter-section dividers. Half the weight of a normal border. */
+.hairline {
+  border-color: var(--border);
+  opacity: 0.7;
+}
+
+/* Stagger fade-in — applied at the page level so each top-level section
+   eases up in sequence on first paint. CSS-only, no JS layer. Children
+   inherit the cascade via :nth-child delays so we don't need per-section
+   data-attributes. */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger > * {
+  animation: fadeUp 600ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 80ms; }
+.stagger > *:nth-child(3) { animation-delay: 160ms; }
+.stagger > *:nth-child(4) { animation-delay: 240ms; }
+.stagger > *:nth-child(5) { animation-delay: 320ms; }
+.stagger > *:nth-child(6) { animation-delay: 400ms; }
+.stagger > *:nth-child(7) { animation-delay: 460ms; }
+.stagger > *:nth-child(n+8) { animation-delay: 520ms; }
+
+/* Disable stagger for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .stagger > * {
+    animation: none;
+  }
+}
+
+/* Section heading — replaces the over-used 11px uppercase tracking-[0.14em]
+   pattern with a deliberate two-tier system.
+   .eyebrow → tiny eyebrow above a section
+   .section-h → real section heading (medium-large, weight, no uppercase) */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.section-h {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+  font-variation-settings: "opsz" 24;
+}

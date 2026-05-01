@@ -1,0 +1,43 @@
+{
+  "name": "@trove/eliza-plugin",
+  "version": "0.1.0",
+  "description": "ElizaOS plugin for Trove — query a USDC yield agent for verdicts, reward leak, and simulator scenarios. Pairs with KeeperHub for execution.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"plugin tests live in the agent's main vitest suite\""
+  },
+  "peerDependencies": {
+    "@elizaos/core": ">=0.1.0"
+  },
+  "keywords": [
+    "elizaos-plugin",
+    "trove",
+    "usdc",
+    "base",
+    "defi",
+    "yield",
+    "agent",
+    "x402",
+    "0g",
+    "keeperhub"
+  ],
+  "homepage": "https://github.com/trove-agent",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trove-agent"
+  }
+}

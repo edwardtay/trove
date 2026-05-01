@@ -1,0 +1,115 @@
+{
+  "name": "stable-rotator-cycle",
+  "description": "Every 15 min: query agent, log the verdict, and commit memoryHash to iNFT. Rebalance tx nodes are adapter placeholders until protocol calldata is wired.",
+  "tags": ["stable-rotator", "0g", "base-mainnet"],
+  "trigger": {
+    "type": "cron",
+    "schedule": "*/15 * * * *",
+    "timezone": "UTC"
+  },
+  "nodes": [
+    {
+      "id": "tick",
+      "type": "http",
+      "config": {
+        "method": "GET",
+        "url": "${AGENT_BASE_URL}/api/agent/tick",
+        "query": {
+          "address": "${USER_ADDRESS}",
+          "principalUsd": "${PRINCIPAL_USD}"
+        },
+        "timeout_ms": 8000
+      }
+    },
+    {
+      "id": "branch",
+      "type": "switch",
+      "depends_on": ["tick"],
+      "config": {
+        "expression": "${tick.body.verdict}",
+        "cases": {
+          "move": "execute_rebalance",
+          "harvest": "execute_harvest",
+          "hold": "log_and_exit"
+        }
+      }
+    },
+    {
+      "id": "execute_rebalance",
+      "type": "tx",
+      "depends_on": ["branch"],
+      "config": {
+        "chain_id": 8453,
+        "to": "${tick.body.txPayload.to}",
+        "data": "${tick.body.txPayload.data}",
+        "value": "0",
+        "gas_strategy": "network_average",
+        "max_priority_fee_gwei": 0.01
+      }
+    },
+    {
+      "id": "execute_harvest",
+      "type": "tx",
+      "depends_on": ["branch"],
+      "config": {
+        "chain_id": 8453,
+        "to": "${tick.body.txPayload.to}",
+        "data": "${tick.body.txPayload.data}",
+        "value": "0",
+        "gas_strategy": "network_average"
+      }
+    },
+    {
+      "id": "log_and_exit",
+      "type": "noop",
+      "depends_on": ["branch"]
+    },
+    {
+      "id": "upload_memory",
+      "type": "http",
+      "depends_on": ["execute_rebalance", "execute_harvest", "log_and_exit"],
+      "config": {
+        "method": "POST",
+        "url": "${AGENT_BASE_URL}/api/agent/log",
+        "body": {
+          "address": "${USER_ADDRESS}",
+          "verdict": "${tick.body.verdict}",
+          "reason": "${tick.body.reason}",
+          "rebalance_tx": "${execute_rebalance.tx_hash}",
+          "harvest_tx": "${execute_harvest.tx_hash}"
+        }
+      }
+    },
+    {
+      "id": "commit_inft",
+      "type": "tx",
+      "depends_on": ["upload_memory"],
+      "config": {
+        "chain_id": 16602,
+        "to": "${tick.body.iNftCommit.contract}",
+        "function": "updateMemory(uint256,string)",
+        "args": [
+          "${tick.body.iNftCommit.tokenId}",
+          "${upload_memory.body.memoryHash}"
+        ],
+        "gas_strategy": "fixed",
+        "gas_limit": 80000
+      }
+    }
+  ],
+  "env_vars": {
+    "AGENT_BASE_URL": "https://stable-rotator.example.com",
+    "USER_ADDRESS": "0x...",
+    "PRINCIPAL_USD": "10000"
+  },
+  "_notes": [
+    "Replace AGENT_BASE_URL with your deployed instance.",
+    "Replace USER_ADDRESS with the user's wallet (one workflow per user, or parameterize).",
+    "The /api/agent/log endpoint uploads the decision log to 0G Storage and returns the new memoryHash.",
+    "KeeperHub tx nodes are signed by the organization's Turnkey wallet configured in KeeperHub.",
+    "Fund the KeeperHub Turnkey wallet with the target network gas token before enabling execute_rebalance, execute_harvest, or commit_inft tx nodes.",
+    "KeeperHub's Turnkey docs currently list Ethereum Mainnet and Sepolia. Treat Base and Galileo tx nodes here as the target workflow shape until KeeperHub confirms support for those networks.",
+    "execute_rebalance and execute_harvest require a production adapter that fills tick.body.txPayload.to/data before live fund movement.",
+    "gas_strategy: network_average is what gives KeeperHub its ~30% gas savings vs naive."
+  ]
+}
