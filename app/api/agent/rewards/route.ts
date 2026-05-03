@@ -61,6 +61,7 @@ export async function GET(req: Request) {
       rewardToken: r.rewardToken,
       decimals: r.decimals,
       amountFormatted: r.amountFormatted,
+      valueUsd: null as number | null, // Aave native rewards: USD pricing TBD
     })),
     ...merkl.pending.map((r) => ({
       source: "merkl" as const,
@@ -68,6 +69,7 @@ export async function GET(req: Request) {
       rewardToken: r.rewardToken,
       decimals: r.decimals,
       amountFormatted: r.amountPendingFormatted,
+      valueUsd: r.valueUsd,
     })),
   ];
 
@@ -77,6 +79,8 @@ export async function GET(req: Request) {
     aaveAssetsChecked: aave.assetsChecked.length,
     unclaimed,
     totalCount: unclaimed.length,
+    totalValueUsd: merkl.totalValueUsd, // Aave USD pricing TBD; Merkl is the dominant source on Base
+    totalValueUsdFormatted: `$${merkl.totalValueUsd.toFixed(2)}`,
     sources: {
       aave: {
         controllerChecked: "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44",

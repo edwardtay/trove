@@ -116,7 +116,7 @@ export default function RewardLeak({ pools }: Props) {
     <section className="mt-12">
       <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-hairline pb-2.5">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-          Money you&apos;re leaving on the table
+          Calculator · reward leak by stake size
         </h2>
         <span className="font-mono text-[11px] tabular-nums text-ink-faint">
           {fmtUsdShort(principal)}

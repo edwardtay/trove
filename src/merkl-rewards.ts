@@ -54,6 +54,10 @@ export type MerklReward = {
   amountClaimed: string;
   amountPending: string;
   amountPendingFormatted: string;
+  /** USD price per token from CoinGecko (null if unknown). */
+  priceUsd: number | null;
+  /** USD value of the pending amount (null if price unknown). */
+  valueUsd: number | null;
   proofs: Hex[];
   /** Total cumulative amount the proof commits to (what `claim` needs). */
   proofAmount: string;
@@ -62,6 +66,8 @@ export type MerklReward = {
 export type MerklSummary = {
   user: Address;
   pending: MerklReward[];
+  /** Sum of USD values across all pending rewards (priced ones only). */
+  totalValueUsd: number;
   /** Claim tx — call Merkl distributor with all pending rewards in one tx. */
   claimTx: {
     to: Address;
@@ -90,8 +96,61 @@ type MerklApiResponse = Array<{
 }>;
 
 /**
+ * Best-effort USD price lookup. Tries CoinGecko first (broader token coverage
+ * than DefiLlama for small/new tokens), falls back to DefiLlama. Returns
+ * a map of lowercased-address → USD price.
+ */
+async function fetchPrices(
+  addrs: Address[],
+): Promise<Record<string, number>> {
+  if (addrs.length === 0) return {};
+  const list = addrs.map((a) => a.toLowerCase()).join(",");
+
+  // CoinGecko free tier — broader coverage for small Base tokens.
+  try {
+    const cg = await fetch(
+      `https://api.coingecko.com/api/v3/simple/token_price/base?contract_addresses=${list}&vs_currencies=usd`,
+      { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) },
+    );
+    if (cg.ok) {
+      const data = (await cg.json()) as Record<string, { usd?: number }>;
+      const out: Record<string, number> = {};
+      for (const [addr, v] of Object.entries(data)) {
+        if (typeof v.usd === "number") out[addr.toLowerCase()] = v.usd;
+      }
+      // If CoinGecko returned anything, use it (don't merge with DefiLlama —
+      // mixing oracles can produce inconsistent totals).
+      if (Object.keys(out).length > 0) return out;
+    }
+  } catch {
+    /* fall through to DefiLlama */
+  }
+
+  // DefiLlama fallback (faster, narrower coverage)
+  try {
+    const ll = await fetch(
+      `https://coins.llama.fi/prices/current/${addrs.map((a) => `base:${a.toLowerCase()}`).join(",")}`,
+      { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) },
+    );
+    if (ll.ok) {
+      const data = (await ll.json()) as { coins?: Record<string, { price?: number }> };
+      const out: Record<string, number> = {};
+      for (const [key, v] of Object.entries(data.coins ?? {})) {
+        const addr = key.replace(/^base:/, "").toLowerCase();
+        if (typeof v.price === "number") out[addr] = v.price;
+      }
+      return out;
+    }
+  } catch {
+    /* return empty */
+  }
+  return {};
+}
+
+/**
  * Fetch unclaimed Merkl rewards for a user on Base mainnet.
  * Builds a single claim tx that batches all pending rewards.
+ * Includes USD pricing from CoinGecko (DefiLlama fallback).
  */
 export async function getMerklRewards(
   user: Address,
@@ -99,6 +158,7 @@ export async function getMerklRewards(
   const summary: MerklSummary = {
     user,
     pending: [],
+    totalValueUsd: 0,
     claimTx: null,
   };
 
@@ -123,6 +183,7 @@ export async function getMerklRewards(
   }
 
   // Flatten across chain entries (Base only here, but defensively iterate)
+  const tempRewards: Omit<MerklReward, "priceUsd" | "valueUsd">[] = [];
   for (const chainEntry of data) {
     for (const r of chainEntry.rewards ?? []) {
       const pendingBig = BigInt(r.pending ?? "0");
@@ -134,7 +195,7 @@ export async function getMerklRewards(
         (r.token?.address ? r.token.address.slice(0, 6) : "?");
       const tokenAddr = (r.token?.address ?? "0x0") as Address;
 
-      summary.pending.push({
+      tempRewards.push({
         rewardToken: tokenAddr,
         symbol,
         decimals,
@@ -143,11 +204,19 @@ export async function getMerklRewards(
         amountPending: pendingBig.toString(),
         amountPendingFormatted: formatUnits(pendingBig, decimals),
         proofs: r.proofs as Hex[],
-        // Merkl's claim() takes the cumulative `amount`, not the pending diff
-        // — the contract stores claimed amounts and computes the delta.
         proofAmount: r.amount,
       });
     }
+  }
+
+  // Price all reward tokens in one parallel call.
+  const prices = await fetchPrices(tempRewards.map((r) => r.rewardToken));
+  for (const r of tempRewards) {
+    const priceUsd = prices[r.rewardToken.toLowerCase()] ?? null;
+    const human = Number(r.amountPendingFormatted);
+    const valueUsd = priceUsd !== null ? human * priceUsd : null;
+    summary.pending.push({ ...r, priceUsd, valueUsd });
+    if (valueUsd !== null) summary.totalValueUsd += valueUsd;
   }
 
   // Build a single batched claim tx if anything is claimable.

@@ -188,9 +188,13 @@ export async function detectPositions(
 ): Promise<PositionResult[]> {
   try {
     const url = `https://base.blockscout.com/api/v2/addresses/${address}/tokens?type=ERC-20`;
+    // Blockscout's API can occasionally be slow under load — fail fast at
+    // 6s rather than blocking the full request, since detected positions
+    // are best-effort enrichment over the always-fast tracked positions.
     const res = await fetch(url, {
       next: { revalidate: 30 },
       headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(6000),
     });
     if (!res.ok) return [];
     const json = (await res.json()) as { items?: BlockscoutToken[] };

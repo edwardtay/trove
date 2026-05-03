@@ -31,6 +31,7 @@ type UnclaimedReward = {
   symbol: string;
   decimals: number;
   amountFormatted: string;
+  valueUsd: number | null;
 };
 
 type TxPayload = {
@@ -46,6 +47,8 @@ type RewardsResponse = {
   aaveAssetsChecked: number;
   unclaimed: UnclaimedReward[];
   totalCount: number;
+  totalValueUsd: number;
+  totalValueUsdFormatted: string;
   sources: {
     aave: { unclaimedCount: number };
     merkl: { unclaimedCount: number };
@@ -128,6 +131,14 @@ export default function UnclaimedRewards({ address }: { address: string }) {
           aave: {data.sources.aave.unclaimedCount} · merkl: {data.sources.merkl.unclaimedCount}
         </span>
       </div>
+      {hasRewards && data.totalValueUsd > 0 && (
+        <div className="mt-2 text-[20px] font-semibold tracking-crunched text-amber-900">
+          {data.totalValueUsdFormatted}
+          <span className="ml-2 text-[11px] font-normal text-amber-900/60">
+            total claimable
+          </span>
+        </div>
+      )}
 
       {hasRewards ? (
         <>
@@ -151,11 +162,18 @@ export default function UnclaimedRewards({ address }: { address: string }) {
                     {r.symbol}
                   </span>
                 </div>
-                <span className="font-mono text-[14px] font-semibold tabular-nums text-amber-900">
-                  {Number(r.amountFormatted).toLocaleString(undefined, {
-                    maximumFractionDigits: 6,
-                  })}
-                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-[14px] font-semibold tabular-nums text-amber-900">
+                    {Number(r.amountFormatted).toLocaleString(undefined, {
+                      maximumFractionDigits: 6,
+                    })}
+                  </span>
+                  {r.valueUsd !== null && r.valueUsd > 0 && (
+                    <span className="font-mono text-[11px] text-amber-900/60">
+                      ≈ ${r.valueUsd.toFixed(4)}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
