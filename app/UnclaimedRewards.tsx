@@ -142,6 +142,27 @@ export default function UnclaimedRewards({ address }: { address: string }) {
           aave: {data.sources.aave.unclaimedCount} · merkl: {data.sources.merkl.unclaimedCount}
         </span>
       </div>
+      {/* Wallet-state diagnostic — visible so user knows what's authorized */}
+      <div className="mt-1 font-mono text-[10px] text-amber-900/60">
+        signing wallet:{" "}
+        {connected ? (
+          <>
+            <span className="select-all">{connected}</span>
+            {!isOwnWallet && (
+              <span className="ml-2 text-rose-700">
+                ⚠️ different from looked-up address — claim disabled
+              </span>
+            )}
+            {isOwnWallet && (
+              <span className="ml-2 text-emerald-700">
+                ✓ matches looked-up address — claim enabled
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-amber-900/40">none connected</span>
+        )}
+      </div>
       {hasRewards && data.totalValueUsd > 0 && (
         <div className="mt-2 text-[20px] font-semibold tracking-crunched text-amber-900">
           {data.totalValueUsdFormatted}
