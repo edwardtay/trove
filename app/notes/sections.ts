@@ -13,5 +13,6 @@ export const SECTIONS: Section[] = [
   { id: "leaderboard", title: "iNFT leaderboard (mock)" },
   { id: "future-tools", title: "0G + Keepers" },
   { id: "prior-art", title: "What already exists" },
+  { id: "verify", title: "Verify any decision" },
   { id: "status", title: "Status" },
 ];

@@ -5,6 +5,7 @@ import type { GasQuote } from "../../src/gas";
 import { DEFAULT_POLICY } from "../../src/policy";
 import InteractiveSimulate from "./InteractiveSimulate";
 import KeeperHubStatus from "./KeeperHubStatus";
+import VerifyDecision from "../VerifyDecision";
 import Leaderboard from "./Leaderboard";
 import OgStorageStatus from "./OgStorageStatus";
 import Logo from "../Logo";
@@ -260,6 +261,32 @@ export default function NotesPage() {
                   to Base yet.
                 </li>
               </ul>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href="/api/proof"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
+                >
+                  view machine-readable proof bundle ↗
+                </Link>
+                <a
+                  href="https://github.com/edwardtay/trove"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-300 bg-white/40 px-3 py-1.5 text-[12px] font-semibold text-emerald-900 transition-colors hover:bg-white"
+                >
+                  source code ↗
+                </a>
+                <a
+                  href="https://app.ens.domains/trove.web3wagmi.eth"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-300 bg-white/40 px-3 py-1.5 text-[12px] font-semibold text-emerald-900 transition-colors hover:bg-white"
+                >
+                  ENS records ↗
+                </a>
+              </div>
             </div>
           </div>
 
@@ -983,6 +1010,18 @@ X-PAYMENT: <base64(signed authorization)>
               $10k, clearly profitable at $100k+. <em>That&apos;s an honest
               constraint to call out, not hide.</em>
             </P>
+          </Section>
+
+          <Section id="verify" title="Verify any decision">
+            <P>
+              The script-equivalent of `npm run verify-decision` runs from
+              the UI. Paste any decision-log root (from 0G Storage), Trove
+              fetches the log, replays the deterministic policy locally, and
+              reports per-entry match results. This is what &ldquo;verifiable&rdquo;
+              means in practice — anyone, anytime, can falsify the agent&apos;s
+              recorded verdicts.
+            </P>
+            <VerifyDecision />
           </Section>
 
           <Section id="status" title="Status">
