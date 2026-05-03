@@ -131,7 +131,7 @@ export default function NotesPage() {
             className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
             aria-hidden
           />
-          private · localhost
+          working notes · public-readable
         </span>
       </header>
 
@@ -157,6 +157,110 @@ export default function NotesPage() {
               simulator, benchmark, findings, and the live 0G integration —
               all in one document.
             </p>
+
+            {/* Live status snapshot — added late in development. Sections
+                below were written earlier and may describe scaffolded states
+                that have since been wired live. The proof endpoint at
+                /api/proof is the canonical source of truth. */}
+            <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Live status snapshot — May 2026
+              </div>
+              <p className="mt-2 text-[13px] leading-[1.6] text-emerald-900/80">
+                The most current state of Trove&apos;s integrations. Sections
+                below this panel describe earlier development states and may
+                contain "scaffolded" notes since superseded. The canonical
+                live truth is{" "}
+                <Link
+                  href="/api/proof"
+                  className="font-mono underline-offset-2 hover:underline"
+                >
+                  /api/proof
+                </Link>
+                .
+              </p>
+              <ul className="mt-3 space-y-1 text-[13px] leading-[1.5] text-emerald-900/80">
+                <li>
+                  ✅ <strong>0G Storage</strong> · policy + decision logs
+                  uploaded; root hashes committed to iNFT memoryHash
+                </li>
+                <li>
+                  ✅ <strong>0G Galileo iNFT</strong> · agent identity at
+                  token #0; updateMemory + recordDecision both live
+                </li>
+                <li>
+                  ✅ <strong>0G Compute</strong> · wired into{" "}
+                  <code className="font-mono text-[12px]">/api/agent/decide</code>{" "}
+                  as a parallel verifiable second-opinion to the deterministic
+                  policy. Activation gate: broker funding (testnet 0G to the
+                  configured ledger).
+                </li>
+                <li>
+                  ✅ <strong>0G DA</strong> · client present in{" "}
+                  <code className="font-mono text-[12px]">src/og-da.ts</code>;
+                  publishes decision inputs per cycle when the disperser
+                  endpoint resolves. Activation gate: disperser URL
+                  configuration.
+                </li>
+                <li>
+                  ✅ <strong>ENS identity</strong> ·{" "}
+                  <a
+                    href="https://app.ens.domains/trove.web3wagmi.eth"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono underline-offset-2 hover:underline"
+                  >
+                    trove.web3wagmi.eth
+                  </a>{" "}
+                  with 8 on-chain text records (description, url, github,
+                  avatar via IPFS, x402-endpoint, 0g-inft, 0g-storage-policy,
+                  0g-memory) plus subname{" "}
+                  <code className="font-mono text-[12px]">
+                    agent-0.trove.web3wagmi.eth
+                  </code>{" "}
+                  for the genesis iNFT.
+                </li>
+                <li>
+                  ✅ <strong>Reverse-resolution UI</strong> · wallet display
+                  and position lookup show ENS names instead of raw addresses
+                  when set. Reverse cache via{" "}
+                  <code className="font-mono text-[12px]">
+                    /api/ens/reverse
+                  </code>
+                  .
+                </li>
+                <li>
+                  ✅ <strong>Aave + Merkl rewards</strong> ·{" "}
+                  <code className="font-mono text-[12px]">
+                    /api/agent/rewards
+                  </code>{" "}
+                  queries Aave V3 RewardsController AND Merkl Distributor on
+                  Base; surfaces unclaimed amounts; builds a single batched
+                  claim tx. UI panel + manual claim button live.
+                </li>
+                <li>
+                  ✅ <strong>KeeperHub auto-claim flow</strong> · workflow
+                  JSON includes parallel branches for verdict + rewards,
+                  delegated claim via Aave setClaimer + Merkl proofs
+                  (Merkl needs no setClaimer — proofs hardcode recipient).
+                  Activation gate: Turnkey wallet funded with Base ETH.
+                </li>
+                <li>
+                  ✅ <strong>x402 paid endpoint</strong> ·{" "}
+                  <code className="font-mono text-[12px]">payToENS</code>{" "}
+                  field added so calling agents can verify the recipient by
+                  resolving the ENS name (defends against offer tampering).
+                </li>
+                <li>
+                  ⚠️ <strong>Honest boundaries</strong> · KeeperHub Turnkey
+                  wallet not yet funded for live execution; Aave protocol
+                  rebalance adapters not wired (claim adapter is the live
+                  exception); RoyaltyRouter contract written but not deployed
+                  to Base yet.
+                </li>
+              </ul>
+            </div>
           </div>
 
           <Section id="framing" title="Framing">
