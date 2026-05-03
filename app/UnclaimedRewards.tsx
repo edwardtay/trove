@@ -24,7 +24,6 @@ import {
   Network,
 } from "lucide-react";
 import {
-  useSendTransaction,
   usePrivy,
   useConnectWallet,
   useWallets,
@@ -67,7 +66,6 @@ type RewardsResponse = {
 
 export default function UnclaimedRewards({ address }: { address: string }) {
   const connected = usePrivyWalletAddress();
-  const { sendTransaction } = useSendTransaction();
   const { login, authenticated } = usePrivy();
   const { connectWallet } = useConnectWallet();
   const { wallets } = useWallets();
@@ -127,19 +125,29 @@ export default function UnclaimedRewards({ address }: { address: string }) {
 
   async function claimNow() {
     if (!data?.claimTx) return;
+    if (!activeWallet) {
+      setErrMsg("No connected wallet detected. Reconnect MetaMask and retry.");
+      return;
+    }
     setErrMsg(null);
     setClaimPhase("signing");
     try {
-      const result = await sendTransaction({
-        to: data.claimTx.to,
-        data: data.claimTx.data,
-        value: data.claimTx.value,
-        chainId: 8453,
-      });
-      const hash =
-        typeof result === "string"
-          ? result
-          : (result as { hash?: string }).hash ?? "";
+      // Bypass Privy's useSendTransaction (which silently uses the EMBEDDED
+      // Privy wallet, not MetaMask). Get the EIP-1193 provider for the
+      // user's actual external wallet and call eth_sendTransaction directly.
+      // This is the only way to guarantee MetaMask pops up.
+      const provider = await activeWallet.getEthereumProvider();
+      const hash = (await provider.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            from: activeWallet.address,
+            to: data.claimTx.to,
+            data: data.claimTx.data,
+            value: data.claimTx.value,
+          },
+        ],
+      })) as string;
       setClaimTxHash(hash);
       setClaimPhase("done");
     } catch (err) {

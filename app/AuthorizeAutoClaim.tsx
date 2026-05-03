@@ -18,7 +18,7 @@ import {
   CheckCircle2,
   ExternalLink,
 } from "lucide-react";
-import { useSendTransaction } from "@privy-io/react-auth";
+import { useWallets } from "@privy-io/react-auth";
 import { usePrivyWalletAddress } from "./usePrivyWalletAddress";
 
 type SetClaimerTx = {
@@ -37,7 +37,10 @@ const KEEPERHUB_CLAIMER =
 
 export default function AuthorizeAutoClaim() {
   const connected = usePrivyWalletAddress();
-  const { sendTransaction } = useSendTransaction();
+  const { wallets } = useWallets();
+  const activeWallet = wallets.find(
+    (w) => w.address.toLowerCase() === connected?.toLowerCase(),
+  );
 
   const [setClaimerTx, setSetClaimerTx] = useState<SetClaimerTx | null>(null);
   const [phase, setPhase] = useState<
@@ -73,19 +76,28 @@ export default function AuthorizeAutoClaim() {
 
   async function authorize() {
     if (!setClaimerTx) return;
+    if (!activeWallet) {
+      setErrMsg("No connected wallet detected. Reconnect MetaMask and retry.");
+      return;
+    }
     setErrMsg(null);
     setPhase("signing");
     try {
-      const result = await sendTransaction({
-        to: setClaimerTx.to,
-        data: setClaimerTx.data,
-        value: setClaimerTx.value,
-        chainId: 8453, // Base mainnet
-      });
-      const hash =
-        typeof result === "string"
-          ? result
-          : (result as { hash?: string }).hash ?? "";
+      // Use the wallet's own EIP-1193 provider directly (MetaMask, Coinbase,
+      // etc.). Privy's useSendTransaction routes to the embedded wallet,
+      // which the user doesn't intend to sign with.
+      const provider = await activeWallet.getEthereumProvider();
+      const hash = (await provider.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            from: activeWallet.address,
+            to: setClaimerTx.to,
+            data: setClaimerTx.data,
+            value: setClaimerTx.value,
+          },
+        ],
+      })) as string;
       setTxHash(hash);
       setPhase("done");
     } catch (err) {
