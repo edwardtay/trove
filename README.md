@@ -17,9 +17,13 @@ Real on-chain references — every link resolves to a real transaction or contra
 | Policy config (0G Storage) | [`0xa2f8ba42…d5848`](https://chainscan-galileo.0g.ai/tx/0x1df5f522a50b4608625302a0c91f83f2e46ba50a1c14b6c0d3161ae3524c39a4) |
 | Decision log (0G Storage) | [`0x7426fb9c…f124f`](https://chainscan-galileo.0g.ai/tx/0xedccfcac4d96a40c6603234d5c0224d6ffc46bb2f1f0ad866b7aa04fd2512570) |
 | iNFT contract (0G Galileo) | [`0x390c17AC…fB64`](https://chainscan-galileo.0g.ai/address/0x390c17AC063F7E64c93ccC1E3a9381b14D68fB64) |
+| iNFT live state (rich JSON) | [`/api/agent/inft`](https://trove.web3wagmi.com/api/agent/inft) |
+| iNFT metadata (OpenSea-style) | [`/api/inft/metadata/0`](https://trove.web3wagmi.com/api/inft/metadata/0) |
 | Genesis agent token #0 mint | [tx](https://chainscan-galileo.0g.ai/tx/0x4cefa6cac6aaee2d21e6786e93d7595f42a6bb78b7f3cf2b980347c0934a4972) |
 | `updateMemory` (memoryHash sync) | [tx](https://chainscan-galileo.0g.ai/tx/0x608d186bf7c5d0717dfecdde19910005a97aa1812fcfb7b62f0436129d4bb4e8) |
 | `recordDecision` (counter++) | [tx](https://chainscan-galileo.0g.ai/tx/0x0728a730ebd2972bb316ece22f0e27316f38f7d48b1b8cbb34b06a92196156c4) |
+
+> **Note on the explorer:** the chainscan token page shows owner + tx history but no name/image because `StableRotatorAgent.sol` is ERC-7857-inspired — rich state lives in the custom `agents(tokenId)` getter rather than the standard ERC-721 `tokenURI()`. The two endpoints above (`/api/agent/inft` and `/api/inft/metadata/0`) return that state in machine-readable JSON, pulled live from the contract on every request.
 
 ## How it works
 
