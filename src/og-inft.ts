@@ -15,6 +15,12 @@ import { ethers } from "ethers";
 
 const ZG_RPC = process.env.ZG_RPC_URL || "https://evmrpc-testnet.0g.ai";
 
+let _provider: ethers.JsonRpcProvider | null = null;
+function getProvider(): ethers.JsonRpcProvider {
+  if (!_provider) _provider = new ethers.JsonRpcProvider(ZG_RPC);
+  return _provider;
+}
+
 // Minimal ABI — only the methods we call from the runtime.
 const ABI = [
   "function updateMemory(uint256 tokenId, string memoryHash) external",
@@ -60,8 +66,7 @@ export class StableRotatorINft {
       return;
     }
     const key = raw.startsWith("0x") ? raw : `0x${raw}`;
-    const provider = new ethers.JsonRpcProvider(ZG_RPC);
-    this.signer = new ethers.Wallet(key, provider);
+    this.signer = new ethers.Wallet(key, getProvider());
     this.contract = new ethers.Contract(
       contractAddress,
       ABI,

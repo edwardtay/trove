@@ -27,6 +27,12 @@ const ZG_INDEXER =
   process.env.ZG_INDEXER_URL ||
   "https://indexer-storage-testnet-turbo.0g.ai";
 
+let _provider: ethers.JsonRpcProvider | null = null;
+function getProvider(): ethers.JsonRpcProvider {
+  if (!_provider) _provider = new ethers.JsonRpcProvider(ZG_RPC);
+  return _provider;
+}
+
 export const ZG_TESTNET = {
   chainId: 16602,
   rpc: ZG_RPC,
@@ -101,8 +107,7 @@ export class StableRotatorStorage {
       return;
     }
     const key = raw.startsWith("0x") ? raw : `0x${raw}`;
-    const provider = new ethers.JsonRpcProvider(ZG_RPC);
-    this.signer = new ethers.Wallet(key, provider);
+    this.signer = new ethers.Wallet(key, getProvider());
   }
 
   get isConfigured(): boolean {

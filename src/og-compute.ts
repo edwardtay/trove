@@ -19,6 +19,12 @@ import { ethers } from "ethers";
 
 const ZG_RPC = process.env.ZG_RPC_URL || "https://evmrpc-testnet.0g.ai";
 
+let _provider: ethers.JsonRpcProvider | null = null;
+function getProvider(): ethers.JsonRpcProvider {
+  if (!_provider) _provider = new ethers.JsonRpcProvider(ZG_RPC);
+  return _provider;
+}
+
 export type AnalyzeInput = {
   currentProject: string | null;
   currentApy: number | null;
@@ -51,8 +57,7 @@ export class StableRotatorCompute {
       return;
     }
     const key = raw.startsWith("0x") ? raw : `0x${raw}`;
-    const provider = new ethers.JsonRpcProvider(ZG_RPC);
-    this.signer = new ethers.Wallet(key, provider);
+    this.signer = new ethers.Wallet(key, getProvider());
   }
 
   get isConfigured(): boolean {

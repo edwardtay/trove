@@ -20,6 +20,12 @@ const KH_BASE = "https://app.keeperhub.com/api";
 const KH_KEY = process.env.KEEPERHUB_API_KEY;
 const BASE_RPC = "https://mainnet.base.org";
 
+let _baseProvider: ethers.JsonRpcProvider | null = null;
+function getBaseProvider(): ethers.JsonRpcProvider {
+  if (!_baseProvider) _baseProvider = new ethers.JsonRpcProvider(BASE_RPC);
+  return _baseProvider;
+}
+
 export type WorkflowCallResult =
   | { ok: true; executionId: string; status: string; output?: unknown }
   | {
@@ -187,8 +193,7 @@ export async function callWorkflowPaid(
     return { ok: false, error: "PRIVATE_KEY missing for x402 payment", httpStatus: 0 };
 
   const key = raw.startsWith("0x") ? raw : `0x${raw}`;
-  const provider = new ethers.JsonRpcProvider(BASE_RPC);
-  const wallet = new ethers.Wallet(key, provider);
+  const wallet = new ethers.Wallet(key, getBaseProvider());
 
   // Step 1: discover the payment offer with an unauthenticated call
   const probe = await callWorkflow(slug, body);
