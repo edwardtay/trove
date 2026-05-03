@@ -60,7 +60,18 @@ type RewardsResponse = {
 export default function UnclaimedRewards({ address }: { address: string }) {
   const connected = usePrivyWalletAddress();
   const { sendTransaction } = useSendTransaction();
-  const { login, authenticated } = usePrivy();
+  const { login, logout, authenticated } = usePrivy();
+
+  async function reconnectAs() {
+    // Force disconnect of current Privy session, then prompt reconnect.
+    // Lets user re-pick a wallet that matches the looked-up address.
+    try {
+      await logout();
+    } catch {
+      /* ignore */
+    }
+    setTimeout(() => login(), 200);
+  }
 
   const [data, setData] = useState<RewardsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -204,14 +215,14 @@ export default function UnclaimedRewards({ address }: { address: string }) {
                 Connect wallet to claim
               </button>
             ) : !isOwnWallet ? (
-              // Connected as a DIFFERENT wallet → can't claim someone else's
+              // Connected as DIFFERENT wallet — clicking triggers logout + reconnect
               <button
-                disabled
-                title={`You're connected as a different wallet. Reconnect with the wallet that owns ${address.slice(0, 6)}…${address.slice(-4)} to claim its rewards.`}
-                className="inline-flex cursor-not-allowed items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white opacity-50"
+                onClick={reconnectAs}
+                title={`You're connected as ${connected?.slice(0, 6)}…${connected?.slice(-4)}, but the rewards belong to ${address.slice(0, 6)}…${address.slice(-4)}. Click to disconnect and pick the right wallet.`}
+                className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-amber-700"
               >
                 <Zap className="h-3.5 w-3.5" />
-                Switch to this wallet to claim
+                Reconnect as {address.slice(0, 6)}…{address.slice(-4)}
               </button>
             ) : (
               // Connected as the same wallet → enable the claim
