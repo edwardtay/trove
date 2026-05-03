@@ -27,6 +27,23 @@ export function usePrivyWalletAddress(): string | null {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { authenticated, user } = usePrivy();
   if (!authenticated || !user) return null;
-  const addr = user.wallet?.address ?? null;
-  return addr;
+
+  // Prefer EXTERNAL wallets (MetaMask, Coinbase, Rainbow, WalletConnect)
+  // over Privy embedded wallets. If a user explicitly connected MetaMask,
+  // they want THAT address to be the active one — not the embedded wallet
+  // Privy may have created earlier from an email/social login.
+  const linked = user.linkedAccounts ?? [];
+  for (const acc of linked) {
+    if (acc.type === "wallet") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const w = acc as any;
+      const clientType = w.walletClientType ?? w.connectorType ?? "";
+      if (clientType && clientType !== "privy" && w.address) {
+        return w.address as string;
+      }
+    }
+  }
+
+  // Fallback to whatever Privy considers the primary wallet.
+  return user.wallet?.address ?? null;
 }
