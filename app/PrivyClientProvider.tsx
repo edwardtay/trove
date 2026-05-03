@@ -49,9 +49,11 @@ export default function PrivyClientProvider({
           },
         },
         // WalletConnect bridge for mobile/cross-device connections.
-        // Set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID to enable mobile QR flow.
+        // Project ID is a public identifier (not a secret); env var allows
+        // overriding for forks/test deployments.
         walletConnectCloudProjectId:
-          process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+          process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ??
+          "d0c0033c0a83369da785949df114348c",
         defaultChain: base,
         supportedChains: [base],
       }}
