@@ -96,12 +96,13 @@ export default function UnclaimedRewards({ address }: { address: string }) {
     }
   }
 
-  // Only show this panel for the connected user looking at their own wallet
-  // (we need them connected to be able to sign the claim).
-  const isOwnWallet =
-    connected && address.toLowerCase() === connected.toLowerCase();
+  // The panel ALWAYS renders (so visitors see "the agent checks rewards
+  // for any wallet"). Claim button is only enabled when the connected
+  // user matches the wallet being inspected.
+  const isOwnWallet = Boolean(
+    connected && address.toLowerCase() === connected.toLowerCase(),
+  );
 
-  if (!isOwnWallet) return null;
   if (loading) {
     return (
       <div className="mt-5 rounded-2xl border border-hairline bg-subtle p-5">
@@ -177,19 +178,30 @@ export default function UnclaimedRewards({ address }: { address: string }) {
             ) : (
               <button
                 onClick={claimNow}
-                disabled={claimPhase === "signing"}
-                className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-amber-700 disabled:cursor-wait disabled:opacity-60"
+                disabled={!isOwnWallet || claimPhase === "signing"}
+                title={
+                  isOwnWallet
+                    ? "Submits a single batched claim tx to Merkl + Aave"
+                    : "Connect this wallet to claim its rewards"
+                }
+                className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {claimPhase === "signing" ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Zap className="h-3.5 w-3.5" />
                 )}
-                {claimPhase === "signing" ? "Sign in your wallet…" : "Claim now (you sign)"}
+                {claimPhase === "signing"
+                  ? "Sign in your wallet…"
+                  : isOwnWallet
+                    ? "Claim now (you sign)"
+                    : "Connect this wallet to claim"}
               </button>
             )}
             <span className="text-[11px] text-amber-900/60">
-              or use the indigo panel below to authorize KeeperHub to auto-claim every 15 min
+              {isOwnWallet
+                ? "or authorize KeeperHub below to auto-claim every 15 min"
+                : "or any owner can authorize KeeperHub for unattended claims"}
             </span>
           </div>
 
