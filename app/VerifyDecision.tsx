@@ -8,7 +8,7 @@
  * Removes the "you need a terminal to verify our claim" friction.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle2,
   AlertCircle,
@@ -40,13 +40,27 @@ type Response = {
   hint?: string;
 };
 
-const KNOWN_ROOT =
+// Fallback root if the live `latestRoot` lookup fails. Used to be the only
+// option but 0G testnet prunes old roots, so we now PREFER the live root from
+// /api/decisions and only use this if the lookup fails AND it's still indexed.
+const FALLBACK_ROOT =
   "0x7426fb9ca3e5f81237612c31bbcb7fba330f41679c6df18ca09824dc2fff124f";
 
 export default function VerifyDecision() {
-  const [root, setRoot] = useState(KNOWN_ROOT);
+  const [root, setRoot] = useState("");
   const [data, setData] = useState<Response | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Pull the freshest log root from /api/decisions on mount so the default
+  // value is something the indexer still has, not a stale hardcoded hash.
+  useEffect(() => {
+    fetch("/api/decisions?limit=1")
+      .then((r) => r.json())
+      .then((d: { latestRoot?: string | null }) => {
+        setRoot(d.latestRoot ?? FALLBACK_ROOT);
+      })
+      .catch(() => setRoot(FALLBACK_ROOT));
+  }, []);
 
   async function verify() {
     setLoading(true);

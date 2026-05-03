@@ -57,6 +57,7 @@ export async function GET(req: Request) {
 
   let entries: Entry[] = FALLBACK_ENTRIES;
   let source: "og-state" | "fallback" = "fallback";
+  let latestRoot: string | null = null;
 
   // Try cwd first (typical Next.js standalone), then a couple of fallback
   // paths. Whichever resolves first wins.
@@ -68,10 +69,14 @@ export async function GET(req: Request) {
   for (const p of candidates) {
     try {
       const raw = await readFile(p, "utf-8");
-      const parsed = JSON.parse(raw) as { log?: { entries?: Entry[] } };
+      const parsed = JSON.parse(raw) as {
+        log?: { entries?: Entry[] };
+        decisionLog?: { rootHash?: string };
+      };
       if (parsed.log?.entries?.length) {
         entries = [...parsed.log.entries].reverse();
         source = "og-state";
+        latestRoot = parsed.decisionLog?.rootHash ?? null;
         break;
       }
     } catch {
@@ -93,5 +98,9 @@ export async function GET(req: Request) {
     lastCycleAt: entries[0]?.cycleAt ?? null,
     nextCycleInMs: nextCycleIn,
     cycleIntervalMs,
+    /** Latest 0G Storage root for the live decision log — VerifyDecision uses
+     * this as the default replay target so the button always works against a
+     * root that the indexer still has. */
+    latestRoot,
   });
 }
