@@ -123,12 +123,13 @@ export async function readPositions(
 }
 
 /**
- * Auto-discover USDC-related holdings via Blockscout's public REST API.
- * Catches receipt tokens for protocols we haven't hardcoded yet (Morpho
- * vaults, Fluid fTokens, Moonwell mTokens, Euler vaults, etc.).
+ * Auto-discover yield-bearing positions via Blockscout's public REST API.
+ * Catches receipt tokens for protocols we haven't hardcoded — Aave aTokens
+ * (any underlying, not just USDC), Compound cTokens, Morpho/Steakhouse/
+ * Gauntlet vaults, Fluid fTokens, Moonwell mTokens, Euler vaults, etc.
  *
- * Filter: any ERC-20 whose symbol or name contains "usdc" (case-insensitive).
- * The plain USDC token is excluded (idle wallet balance, not a yield position).
+ * For non-stablecoin underlyings (e.g. aWETH, aGHO, aEURC) we fetch a price
+ * estimate so the agent can still rank positions by USD value.
  */
 type BlockscoutToken = {
   token: {
@@ -136,23 +137,47 @@ type BlockscoutToken = {
     name: string;
     symbol: string;
     decimals: string;
+    exchange_rate?: string | null; // Blockscout often includes USD price
   };
   value: string;
 };
 
 const PLAIN_USDC = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913".toLowerCase();
 const PLAIN_USDBC = "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca".toLowerCase();
+const PLAIN_WETH = "0x4200000000000000000000000000000000000006".toLowerCase();
 
 function inferProjectFromName(name: string, symbol: string): string {
   const probe = `${name} ${symbol}`.toLowerCase();
   if (probe.includes("aave")) return "aave-v3";
-  if (probe.includes("compound") || /^cusdc/i.test(symbol)) return "compound-v3";
-  if (probe.includes("moonwell") || /^musdc/i.test(symbol)) return "moonwell";
-  if (probe.includes("fluid") || /^fusdc/i.test(symbol)) return "fluid-lending";
+  if (probe.includes("compound") || /^c[A-Z]/.test(symbol)) return "compound-v3";
+  if (probe.includes("moonwell") || /^m[A-Z]/.test(symbol)) return "moonwell";
+  if (probe.includes("fluid") || /^f[A-Z]/.test(symbol)) return "fluid-lending";
   if (probe.includes("morpho") || probe.includes("steak") || probe.includes("gauntlet")) return "morpho-blue";
-  if (probe.includes("spark") || /^susdc/i.test(symbol)) return "spark";
-  if (probe.includes("euler") || /^eusdc/i.test(symbol)) return "euler-v2";
+  if (probe.includes("spark") || /^s[A-Z]/.test(symbol)) return "spark";
+  if (probe.includes("euler") || /^e[A-Z]/.test(symbol)) return "euler-v2";
   return "other";
+}
+
+/**
+ * Detect if a token is a yield-bearing receipt (i.e. positioned in a protocol),
+ * not just an idle wallet balance. Heuristics, not exhaustive.
+ */
+function isReceiptToken(name: string, symbol: string): boolean {
+  const sym = symbol.toLowerCase();
+  const probe = `${name} ${symbol}`.toLowerCase();
+  // Aave V3: aBasUSDC, aBaseWETH, aBasGHO, aBasEURC, aBasecbETH, aweETH...
+  if (/^a(bas|base)/i.test(sym) || probe.includes("aave")) return true;
+  // Compound V3: cUSDCv3, cWETHv3, cUSDbCv3
+  if (/^c[a-z]+v3$/i.test(sym) || probe.includes("compound")) return true;
+  // Moonwell: mUSDC, mWETH, mEURC
+  if (/^m[A-Z]/.test(symbol) && probe.includes("moonwell")) return true;
+  // Fluid: fUSDC, fETH
+  if (/^f[A-Z]/.test(symbol) && probe.includes("fluid")) return true;
+  // Morpho vaults often named "Steakhouse USDC", "Gauntlet WETH Prime", etc.
+  if (probe.includes("morpho") || probe.includes("steakhouse") || probe.includes("gauntlet")) return true;
+  // USDC/stable variants (legacy filter)
+  if (/usdc|usdb|usds|usd\.e/i.test(probe) && sym !== "usdc" && sym !== "usdbc") return true;
+  return false;
 }
 
 export async function detectPositions(
@@ -171,13 +196,23 @@ export async function detectPositions(
     const candidates: PositionResult[] = [];
     for (const item of items) {
       const tokenAddr = item.token.address.toLowerCase();
-      if (tokenAddr === PLAIN_USDC || tokenAddr === PLAIN_USDBC) continue;
-      const probe = `${item.token.name ?? ""} ${item.token.symbol ?? ""}`.toLowerCase();
-      const looksUsdc = /usdc|usdb|usds|usd\.e/i.test(probe);
-      if (!looksUsdc) continue;
+      // Exclude plain underlyings (idle balances, not positions)
+      if (tokenAddr === PLAIN_USDC || tokenAddr === PLAIN_USDBC || tokenAddr === PLAIN_WETH) continue;
+      if (!isReceiptToken(item.token.name ?? "", item.token.symbol ?? "")) continue;
+
       const decimals = Number(item.token.decimals) || 6;
-      const balanceUsd = Number(formatUnits(BigInt(item.value), decimals));
+      const balanceTokens = Number(formatUnits(BigInt(item.value), decimals));
+      if (balanceTokens <= 0) continue;
+
+      // Blockscout includes USD exchange rate when available. For stablecoin
+      // receipts (aUSDC, cUSDCv3, etc.) the rate is ~1 by definition. For
+      // ETH/non-stable receipts (aWETH) it returns the live spot price.
+      const rate = item.token.exchange_rate
+        ? Number(item.token.exchange_rate)
+        : 1;
+      const balanceUsd = balanceTokens * (Number.isFinite(rate) ? rate : 1);
       if (balanceUsd < 0.01) continue; // sub-cent dust
+
       candidates.push({
         project: inferProjectFromName(item.token.name, item.token.symbol),
         label: `${item.token.name} (${item.token.symbol})`,
