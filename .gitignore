@@ -4,3 +4,16 @@ node_modules
 state.json
 *.log
 .next
+
+# IDE / agent session data
+.claude/
+.codex
+.vscode/
+.idea/
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+tsconfig.typecheck.tsbuildinfo
+
+# CapRover deploy artifacts
+temporary-captain-to-deploy.tar
