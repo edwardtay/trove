@@ -89,11 +89,25 @@
       "depends_on": ["branch_rewards"],
       "config": {
         "chain_id": 8453,
-        "to": "${rewards_check.body.claimTx.delegated.to}",
-        "data": "${rewards_check.body.claimTx.delegated.data}",
+        "to": "${rewards_check.body.claimTx.to}",
+        "data": "${rewards_check.body.claimTx.data}",
         "value": "0",
         "gas_strategy": "network_average",
-        "_note": "Uses claimAllRewardsOnBehalf — requires user to have called setClaimer(user, KEEPERHUB_TURNKEY_WALLET) once. Rewards land directly in user's wallet."
+        "_note": "Server-built claim tx — auto-prefers Merkl Distributor (most Aave Base rewards now flow via Merkl). For Aave native rewards (when present), this falls through to claimAllRewardsOnBehalf which requires user to have called setClaimer(user, KEEPERHUB_TURNKEY_WALLET) once. Merkl proofs hardcode recipient — no setClaimer needed for Merkl path. Rewards always land in user's wallet."
+      }
+    },
+    {
+      "id": "execute_aave_native_claim",
+      "type": "tx",
+      "depends_on": ["branch_rewards"],
+      "_enabled_when": "${rewards_check.body.sources.aave.unclaimedCount > 0 && rewards_check.body.sources.aave.claimTx != null}",
+      "config": {
+        "chain_id": 8453,
+        "to": "${rewards_check.body.sources.aave.claimTx.delegated.to}",
+        "data": "${rewards_check.body.sources.aave.claimTx.delegated.data}",
+        "value": "0",
+        "gas_strategy": "network_average",
+        "_note": "Optional second tx if Aave native incentives ALSO have unclaimed amounts (separate from Merkl). Most cycles only the Merkl path fires."
       }
     },
     {
@@ -114,6 +128,7 @@
         "execute_harvest",
         "log_and_exit",
         "execute_claim_rewards",
+        "execute_aave_native_claim",
         "skip_claim"
       ],
       "config": {
@@ -126,8 +141,27 @@
           "rebalance_tx": "${execute_rebalance.tx_hash}",
           "harvest_tx": "${execute_harvest.tx_hash}",
           "claim_tx": "${execute_claim_rewards.tx_hash}",
+          "aave_native_claim_tx": "${execute_aave_native_claim.tx_hash}",
           "claimed_rewards": "${rewards_check.body.unclaimed}"
         }
+      }
+    },
+    {
+      "id": "record_decision",
+      "type": "tx",
+      "depends_on": ["upload_memory"],
+      "_enabled_when": "${tick.body.verdict != 'hold'}",
+      "config": {
+        "chain_id": 16602,
+        "to": "${tick.body.iNftCommit.contract}",
+        "function": "recordDecision(uint256,uint8)",
+        "args": [
+          "${tick.body.iNftCommit.tokenId}",
+          "${tick.body.verdict == 'move' ? 1 : 2}"
+        ],
+        "gas_strategy": "fixed",
+        "gas_limit": 60000,
+        "_note": "Increments on-chain decision counters (move=1, harvest=2). HOLD verdicts don't increment to keep counters meaningful."
       }
     },
     {
@@ -154,11 +188,12 @@
     "KEEPERHUB_TURNKEY_WALLET": "0x1A09587D1f8D7BFB88454Abd51EB0354A2fdeDDd"
   },
   "_notes": [
-    "Two parallel checks per cycle: tick (rebalance/harvest decision) and rewards_check (claimable Aave incentives).",
-    "rewards_check → branch_rewards → execute_claim_rewards uses Aave's claimAllRewardsOnBehalf — KeeperHub's Turnkey wallet must be pre-authorized by the user via Aave RewardsController.setClaimer(user, KEEPERHUB_TURNKEY_WALLET).",
-    "Claimed rewards always land in the user's wallet, not KeeperHub's. The setClaimer permission only allows claiming, not redirecting.",
-    "All branches converge on upload_memory → commit_inft so every cycle (even pure HOLD) updates the iNFT memoryHash.",
-    "Fund the KeeperHub Turnkey wallet with Base ETH for gas before enabling tx nodes.",
-    "execute_rebalance and execute_harvest still require a protocol-specific calldata adapter to be wired; execute_claim_rewards uses Aave's standard ABI directly and works today."
+    "Two parallel checks per cycle: tick (rebalance/harvest decision) and rewards_check (claimable Aave + Merkl incentives across Base).",
+    "execute_claim_rewards uses the server-prebuilt claim tx, auto-preferring Merkl (where Aave Base actually distributes incentives today). Merkl proofs hardcode the recipient, so no setClaimer authorization needed.",
+    "execute_aave_native_claim is the optional second tx for the rare case Aave's native RewardsController also has unclaimed amounts (separate from Merkl). Requires setClaimer(user, KEEPERHUB_TURNKEY_WALLET) one-time.",
+    "Claimed rewards always land in the user's wallet, not KeeperHub's. The setClaimer permission only allows claiming, not redirecting; Merkl proofs don't permit redirection at all.",
+    "All branches converge on upload_memory → commit_inft → record_decision so every cycle updates the iNFT (memoryHash always; counter only on move/harvest, not on hold).",
+    "Fund the KeeperHub Turnkey wallet with Base ETH (Aave/Merkl claims) and Galileo testnet 0G (iNFT updates) before enabling tx nodes.",
+    "execute_rebalance and execute_harvest still require a protocol-specific calldata adapter to be wired; execute_claim_rewards (Merkl path) uses standard distributor ABI and works today."
   ]
 }
