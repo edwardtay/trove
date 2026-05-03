@@ -195,6 +195,13 @@ export async function GET(req: Request) {
       // memoryHash is populated after the keeper uploads the new decision log
       // to 0G Storage; this slot is what KeeperHub fills in its final node.
       memoryHashPlaceholder: "<from-0g-storage-upload>",
+      // Decision kind for iNFT.recordDecision(tokenId, kind):
+      // 0 = hold (don't increment any counter)
+      // 1 = move (rebalance — increments totalRebalances)
+      // 2 = harvest (claim rewards — increments totalHarvests)
+      // Pre-computed here so workflow configs don't need ternary expressions.
+      decisionKind:
+        decision.move ? 1 : 0,
     },
     ogDA: daBlob,
     ogCompute: computeAnalysis

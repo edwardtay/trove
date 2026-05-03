@@ -1,7 +1,7 @@
 {
   "name": "trove-cycle",
-  "description": "Every 15 min: query agent verdict + Aave rewards. If movable: execute rebalance. If rewards >= threshold: claim them on user's behalf via Aave's setClaimer-authorized path. Log everything to 0G Storage and commit memoryHash to iNFT.",
-  "tags": ["trove", "0g", "aave-v3", "base-mainnet"],
+  "description": "Every 15 min: query agent verdict + Aave/Merkl rewards. If movable: execute rebalance. If rewards exist: claim via Merkl (no setClaimer required) or Aave (with setClaimer). Log everything to 0G Storage and commit memoryHash + decision counter to iNFT on Galileo.",
+  "tags": ["trove", "0g", "aave-v3", "merkl", "base-mainnet", "0g-galileo"],
   "trigger": {
     "type": "cron",
     "schedule": "*/15 * * * *",
@@ -18,7 +18,8 @@
           "address": "${USER_ADDRESS}",
           "principalUsd": "${PRINCIPAL_USD}"
         },
-        "timeout_ms": 8000
+        "timeout_ms": 8000,
+        "retries": 1
       }
     },
     {
@@ -30,7 +31,8 @@
         "query": {
           "address": "${USER_ADDRESS}"
         },
-        "timeout_ms": 8000
+        "timeout_ms": 8000,
+        "retries": 1
       }
     },
     {
@@ -42,7 +44,7 @@
         "cases": {
           "move": "execute_rebalance",
           "harvest": "execute_harvest",
-          "hold": "log_and_exit"
+          "hold": "verdict_no_op"
         }
       }
     },
@@ -51,11 +53,11 @@
       "type": "switch",
       "depends_on": ["rewards_check"],
       "config": {
-        "expression": "${rewards_check.body.unclaimed.length > 0}",
+        "expression": "${rewards_check.body.totalCount}",
         "cases": {
-          "true": "execute_claim_rewards",
-          "false": "skip_claim"
-        }
+          "0": "rewards_no_op"
+        },
+        "default": "execute_claim_rewards"
       }
     },
     {
@@ -68,7 +70,8 @@
         "data": "${tick.body.txPayload.data}",
         "value": "0",
         "gas_strategy": "network_average",
-        "max_priority_fee_gwei": 0.01
+        "max_priority_fee_gwei": 0.01,
+        "_note": "tick endpoint pre-builds calldata when source+target are both supported (Aave→Aave currently). Status template if fields are null."
       }
     },
     {
@@ -80,7 +83,8 @@
         "to": "${tick.body.txPayload.to}",
         "data": "${tick.body.txPayload.data}",
         "value": "0",
-        "gas_strategy": "network_average"
+        "gas_strategy": "network_average",
+        "_note": "Harvest = claim+swap+redeposit. Adapter status template until protocol-specific calldata is wired."
       }
     },
     {
@@ -93,32 +97,18 @@
         "data": "${rewards_check.body.claimTx.data}",
         "value": "0",
         "gas_strategy": "network_average",
-        "_note": "Server-built claim tx — auto-prefers Merkl Distributor (most Aave Base rewards now flow via Merkl). For Aave native rewards (when present), this falls through to claimAllRewardsOnBehalf which requires user to have called setClaimer(user, KEEPERHUB_TURNKEY_WALLET) once. Merkl proofs hardcode recipient — no setClaimer needed for Merkl path. Rewards always land in user's wallet."
+        "_note": "Server-prebuilt claim tx. Auto-prefers Merkl (where most Aave Base rewards flow). Merkl proofs hardcode recipient — no setClaimer required for Merkl. Aave native claim path via separate workflow if needed (requires user setClaimer)."
       }
     },
     {
-      "id": "execute_aave_native_claim",
-      "type": "tx",
-      "depends_on": ["branch_rewards"],
-      "_enabled_when": "${rewards_check.body.sources.aave.unclaimedCount > 0 && rewards_check.body.sources.aave.claimTx != null}",
-      "config": {
-        "chain_id": 8453,
-        "to": "${rewards_check.body.sources.aave.claimTx.delegated.to}",
-        "data": "${rewards_check.body.sources.aave.claimTx.delegated.data}",
-        "value": "0",
-        "gas_strategy": "network_average",
-        "_note": "Optional second tx if Aave native incentives ALSO have unclaimed amounts (separate from Merkl). Most cycles only the Merkl path fires."
-      }
-    },
-    {
-      "id": "skip_claim",
-      "type": "noop",
-      "depends_on": ["branch_rewards"]
-    },
-    {
-      "id": "log_and_exit",
+      "id": "verdict_no_op",
       "type": "noop",
       "depends_on": ["branch_verdict"]
+    },
+    {
+      "id": "rewards_no_op",
+      "type": "noop",
+      "depends_on": ["branch_rewards"]
     },
     {
       "id": "upload_memory",
@@ -126,11 +116,11 @@
       "depends_on": [
         "execute_rebalance",
         "execute_harvest",
-        "log_and_exit",
         "execute_claim_rewards",
-        "execute_aave_native_claim",
-        "skip_claim"
+        "verdict_no_op",
+        "rewards_no_op"
       ],
+      "wait_mode": "any_complete",
       "config": {
         "method": "POST",
         "url": "${AGENT_BASE_URL}/api/agent/log",
@@ -141,33 +131,48 @@
           "rebalance_tx": "${execute_rebalance.tx_hash}",
           "harvest_tx": "${execute_harvest.tx_hash}",
           "claim_tx": "${execute_claim_rewards.tx_hash}",
-          "aave_native_claim_tx": "${execute_aave_native_claim.tx_hash}",
-          "claimed_rewards": "${rewards_check.body.unclaimed}"
+          "claimed_rewards": "${rewards_check.body.unclaimed}",
+          "claimed_value_usd": "${rewards_check.body.totalValueUsd}"
+        },
+        "timeout_ms": 10000
+      }
+    },
+    {
+      "id": "branch_should_record",
+      "type": "switch",
+      "depends_on": ["upload_memory"],
+      "config": {
+        "expression": "${tick.body.verdict}",
+        "cases": {
+          "move": "record_decision",
+          "harvest": "record_decision",
+          "hold": "commit_inft"
         }
       }
     },
     {
       "id": "record_decision",
       "type": "tx",
-      "depends_on": ["upload_memory"],
-      "_enabled_when": "${tick.body.verdict != 'hold'}",
+      "depends_on": ["branch_should_record"],
       "config": {
         "chain_id": 16602,
         "to": "${tick.body.iNftCommit.contract}",
         "function": "recordDecision(uint256,uint8)",
+        "args_template": "verdict_to_kind",
         "args": [
           "${tick.body.iNftCommit.tokenId}",
-          "${tick.body.verdict == 'move' ? 1 : 2}"
+          "${tick.body.iNftCommit.decisionKind}"
         ],
         "gas_strategy": "fixed",
         "gas_limit": 60000,
-        "_note": "Increments on-chain decision counters (move=1, harvest=2). HOLD verdicts don't increment to keep counters meaningful."
+        "_note": "Increments on-chain decision counters. /api/agent/tick now returns iNftCommit.decisionKind (0=hold, 1=move, 2=harvest) so we don't need ternary expressions in this config."
       }
     },
     {
       "id": "commit_inft",
       "type": "tx",
-      "depends_on": ["upload_memory"],
+      "depends_on": ["record_decision", "branch_should_record"],
+      "wait_mode": "any_complete",
       "config": {
         "chain_id": 16602,
         "to": "${tick.body.iNftCommit.contract}",
@@ -187,13 +192,18 @@
     "PRINCIPAL_USD": "10000",
     "KEEPERHUB_TURNKEY_WALLET": "0x1A09587D1f8D7BFB88454Abd51EB0354A2fdeDDd"
   },
-  "_notes": [
-    "Two parallel checks per cycle: tick (rebalance/harvest decision) and rewards_check (claimable Aave + Merkl incentives across Base).",
-    "execute_claim_rewards uses the server-prebuilt claim tx, auto-preferring Merkl (where Aave Base actually distributes incentives today). Merkl proofs hardcode the recipient, so no setClaimer authorization needed.",
-    "execute_aave_native_claim is the optional second tx for the rare case Aave's native RewardsController also has unclaimed amounts (separate from Merkl). Requires setClaimer(user, KEEPERHUB_TURNKEY_WALLET) one-time.",
-    "Claimed rewards always land in the user's wallet, not KeeperHub's. The setClaimer permission only allows claiming, not redirecting; Merkl proofs don't permit redirection at all.",
-    "All branches converge on upload_memory → commit_inft → record_decision so every cycle updates the iNFT (memoryHash always; counter only on move/harvest, not on hold).",
-    "Fund the KeeperHub Turnkey wallet with Base ETH (Aave/Merkl claims) and Galileo testnet 0G (iNFT updates) before enabling tx nodes.",
-    "execute_rebalance and execute_harvest still require a protocol-specific calldata adapter to be wired; execute_claim_rewards (Merkl path) uses standard distributor ABI and works today."
+  "_design_notes": [
+    "Two parallel HTTP nodes (tick + rewards_check) fire from cron — checks run in parallel, max latency = slowest endpoint.",
+    "Switch expressions use simple equality on string/numeric values — no ternaries, no JS-style operators (defensive: works on most workflow DSLs without modification).",
+    "All decision-kind logic moved server-side: /api/agent/tick now returns iNftCommit.decisionKind directly (0=hold, 1=move, 2=harvest). No expression evaluation in the workflow.",
+    "branch_should_record routes HOLD verdicts directly to commit_inft, skipping the recordDecision counter increment. MOVE/HARVEST go through both — counter then memory.",
+    "wait_mode: any_complete on convergence nodes (upload_memory, commit_inft) means workflow proceeds when ANY upstream node completes — handles the parallel branch pattern correctly.",
+    "Galileo (chainId 16602) tx nodes assume KeeperHub Turnkey supports the network. If unsupported, run only the Base subset (rebalance/harvest/claim_rewards/upload_memory) and commit iNFT updates from a separate process using the agent's runtime PRIVATE_KEY."
+  ],
+  "_activation_gates": [
+    "Set USER_ADDRESS in env_vars to the user's wallet (one workflow per user).",
+    "Fund KeeperHub Turnkey wallet (0x1A09…fdeDDd) with Base ETH for Aave/Merkl claim gas (~$0.30/claim, $5 buys ~15 cycles).",
+    "For Aave native claim: user calls Aave RewardsController.setClaimer(user, KEEPERHUB_TURNKEY_WALLET) — UI button at https://trove.web3wagmi.com/.",
+    "For Galileo iNFT updates: confirm KeeperHub Turnkey supports chain 16602 OR fall back to runtime PRIVATE_KEY signer."
   ]
 }
