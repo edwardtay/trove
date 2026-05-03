@@ -223,7 +223,7 @@ This separation is deliberate: the agent can publish/verifiably sell decisions w
 
 ```bash
 git clone <repo>
-cd autoyield-openagent
+cd trove
 npm install --legacy-peer-deps   # React 19 / wagmi peer-dep conflict
 cp .env.example .env.local       # add PRIVATE_KEY (Galileo testnet)
 npm run dev                       # http://localhost:3000
