@@ -1,6 +1,6 @@
 # Trove
 
-**A USDC yield agent on Base that earns the 1–3% per year most people leave on the table by forgetting to claim reward tokens.** Auto-rotates only when the math works. iNFT identity on 0G. x402-paid policy decisions. Built for ETHGlobal OpenAgents.
+**A USDC yield agent on Base that earns the 1–3% per year most people leave on the table by forgetting to claim reward tokens.** Auto-rotates only when the math works. iNFT identity on 0G. x402-paid policy decisions.
 
 > Live demo: https://trove.web3wagmi.com · Runs locally at `http://localhost:3000`. This repo also ships with `vercel.json` for Vercel-style deploys.
 
