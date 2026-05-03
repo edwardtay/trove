@@ -46,7 +46,28 @@ Trove is discoverable via ENS text records on `trove.web3wagmi.eth`:
 | `0g-storage-policy` | Latest policy config root on 0G Storage |
 | `0g-memory` | Latest decision-log root on 0G Storage |
 
-Other agents can resolve `trove.web3wagmi.eth`, fetch the records, and discover the agent's full integration footprint with no API key or signed handshake. See `src/agent-ens.ts`.
+Other agents can resolve `trove.web3wagmi.eth`, fetch the records, and discover the agent's full integration footprint with no API key or signed handshake.
+
+The route `/agent/<ens-name>` resolves any ENS name to a Trove-style agent profile — `agent-0.trove.web3wagmi.eth` is the genesis iNFT subname; any team publishing the same record schema becomes Trove-compatible automatically. See `src/agent-ens.ts` and `app/agent/[name]/page.tsx`.
+
+## Auto-claim rewards (Aave + Merkl + KeeperHub)
+
+Trove's headline pitch — "auto-claims reward tokens you'd forget" — is implemented end-to-end:
+
+1. `/api/agent/rewards?address=0x…` queries Aave V3's RewardsController **and** Merkl's distributor on Base. Returns unclaimed amounts with USD valuations (CoinGecko primary, DefiLlama fallback) plus a pre-built batched claim transaction.
+2. UI panel surfaces the data — visible for any wallet lookup. "Claim now (you sign)" button enabled when the connected user matches the lookup.
+3. For unattended auto-claim: user calls Aave's `setClaimer(user, KEEPERHUB_TURNKEY_WALLET)` once via the in-UI button. KeeperHub's cron workflow then claims rewards on-behalf forever. Merkl path requires no setClaimer (proofs hardcode recipient).
+4. Configured KeeperHub Turnkey wallet: `0x1A09587D1f8D7BFB88454Abd51EB0354A2fdeDDd`. Workflow JSON in `keeperhub-workflow.json` (13 nodes, parallel branches, cross-chain Base + 0G Galileo).
+
+## What's new (recent additions)
+
+- **ENS-resolved agent profile route**: `/agent/<ens-name>` renders any agent published with the schema
+- **In-UI verifier**: `/notes` and homepage panel let visitors paste a decision-log root and watch Trove fetch + replay the policy live
+- **Aave + Merkl rewards**: combined endpoint with USD totals, pre-built claim tx
+- **`payToENS` x402 field**: x402 offers include the ENS name pointing at the recipient — defends against offer tampering
+- **iNFT identity card** on homepage: live decision counters + memory hash, reads on-chain
+- **KeeperHub workflow** with delegated Aave claim path + Merkl claim node
+- **Honest boundaries** maintained: every "scaffolded" feature documented, every activation gate named
 
 ## 0G integration
 
