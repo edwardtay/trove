@@ -33,7 +33,13 @@ export async function GET(
     return NextResponse.json({ error: "invalid tokenId" }, { status: 400 });
   }
 
-  const origin = new URL(req.url).origin;
+  // Behind a reverse proxy (CapRover/nginx), req.url reports the internal
+  // bind address (https://0.0.0.0:3000). Use the X-Forwarded-Host header for
+  // the actual public origin, with a hardcoded fallback for the prod domain.
+  const fwdHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  const fwdProto = req.headers.get("x-forwarded-proto") ?? "https";
+  const origin = fwdHost ? `${fwdProto}://${fwdHost}` : "https://trove.web3wagmi.com";
+
   const inft = new StableRotatorINft(INFT_ADDRESS);
   if (!inft.isConfigured) {
     return NextResponse.json(
