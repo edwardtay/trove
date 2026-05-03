@@ -17,8 +17,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# Constrain V8 heap during build so memory-pressured hosts don't OOM.
-ENV NODE_OPTIONS="--max-old-space-size=1024"
+# V8 heap cap for the build. Next.js 15 + React 19 + viem/ethers/wagmi
+# compilation peaks around 1.0-1.4 GB during webpack chunking — 1024 OOMs,
+# 2048 gives ~600 MB headroom without exhausting tight hosts.
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 # Hardhat is a devDep; next build only touches Next code.
 RUN npm run build
 
