@@ -9,39 +9,19 @@
  * judges and explorers that DO know to fetch tokenURI-style metadata see
  * meaningful data instead of "no metadata."
  *
- * The data is pulled live from /api/agent/inft on every request, so counters
- * (totalDecisions, totalRebalances, totalHarvests) and pointers (configHash,
- * memoryHash) are always current — never stale baked-in JSON.
+ * Reads directly from the on-chain contract (no internal HTTP hop) so
+ * counters and 0G Storage hashes are always current.
  */
 
 import { NextResponse } from "next/server";
+import { StableRotatorINft } from "../../../../../src/og-inft";
 
 export const revalidate = 30;
 export const runtime = "nodejs";
 
-type INftAgent = {
-  name: string;
-  configHash: string;
-  memoryHash: string;
-  totalDecisions: string;
-  totalRebalances: string;
-  totalHarvests: string;
-  clonedFrom: string;
-  createdAt: number;
-  createdAtIso: string;
-  minApyDeltaBps: string;
-  minHoldingDays: string;
-  safetyMarginBps: string;
-  harvester: boolean;
-};
-
-type INftResponse = {
-  contract: string;
-  tokenId: number;
-  chainName: string;
-  tokenExplorer: string;
-  agent: INftAgent;
-};
+const INFT_ADDRESS =
+  process.env.NEXT_PUBLIC_INFT_ADDRESS ??
+  "0x390c17AC063F7E64c93ccC1E3a9381b14D68fB64";
 
 export async function GET(
   req: Request,
@@ -54,17 +34,29 @@ export async function GET(
   }
 
   const origin = new URL(req.url).origin;
-  const inftRes = await fetch(`${origin}/api/agent/inft?tokenId=${tokenIdNum}`, {
-    next: { revalidate: 30 },
-  });
-  if (!inftRes.ok) {
+  const inft = new StableRotatorINft(INFT_ADDRESS);
+  if (!inft.isConfigured) {
     return NextResponse.json(
-      { error: `failed to load iNFT state (${inftRes.status})` },
+      { error: "iNFT reader not configured (PRIVATE_KEY missing)" },
+      { status: 503 },
+    );
+  }
+
+  let a: Awaited<ReturnType<StableRotatorINft["getAgent"]>>;
+  try {
+    a = await inft.getAgent(BigInt(tokenIdNum));
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : String(err) },
       { status: 502 },
     );
   }
-  const inft = (await inftRes.json()) as INftResponse;
-  const a = inft.agent;
+  if (!a) {
+    return NextResponse.json(
+      { error: `agent not found at tokenId ${tokenIdNum}` },
+      { status: 404 },
+    );
+  }
 
   // OpenSea-compliant metadata schema
   const metadata = {
@@ -76,11 +68,10 @@ export async function GET(
       `Configuration: configHash → 0G Storage. Memory: memoryHash → 0G Storage. ` +
       `On-chain counters track total decisions, rebalances, and harvests.`,
     external_url: `${origin}/agent/trove.web3wagmi.eth`,
-    // Fallback image — replace with a richer one if needed
     image: `${origin}/og-image.png`,
     attributes: [
       { trait_type: "Schema", value: "ERC-7857-inspired" },
-      { trait_type: "Network", value: inft.chainName },
+      { trait_type: "Network", value: "0G Galileo testnet" },
       { trait_type: "Total Decisions", value: Number(a.totalDecisions), display_type: "number" },
       { trait_type: "Total Rebalances", value: Number(a.totalRebalances), display_type: "number" },
       { trait_type: "Total Harvests", value: Number(a.totalHarvests), display_type: "number" },
@@ -88,16 +79,15 @@ export async function GET(
       { trait_type: "Min Holding Days", value: Number(a.minHoldingDays), display_type: "number" },
       { trait_type: "Safety Margin (bps)", value: Number(a.safetyMarginBps), display_type: "number" },
       { trait_type: "Harvester Enabled", value: a.harvester ? "Yes" : "No" },
-      { trait_type: "Cloned From", value: a.clonedFrom },
+      { trait_type: "Cloned From", value: a.clonedFrom.toString() },
       { trait_type: "Config Hash (0G Storage)", value: a.configHash },
       { trait_type: "Memory Hash (0G Storage)", value: a.memoryHash },
-      { trait_type: "Minted (Unix)", value: a.createdAt, display_type: "date" },
+      { trait_type: "Minted (Unix)", value: Number(a.createdAt), display_type: "date" },
     ],
-    // Custom Trove-specific fields
     trove: {
-      contract: inft.contract,
-      tokenId: inft.tokenId,
-      explorer: inft.tokenExplorer,
+      contract: INFT_ADDRESS,
+      tokenId: tokenIdNum,
+      explorer: `https://chainscan-galileo.0g.ai/token/${INFT_ADDRESS}?a=${tokenIdNum}`,
       ensProfile: `${origin}/agent/trove.web3wagmi.eth`,
       verifyDecision: `${origin}/api/agent/verify?root=${a.memoryHash}`,
       proofBundle: `${origin}/api/proof`,
