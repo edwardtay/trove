@@ -22,6 +22,7 @@ export type AgentDiscoverProfile = {
   address: `0x${string}` | null;
   x402Endpoint: string | null;
   ogInft: string | null;
+  ogStoragePolicy: string | null;
   ogMemory: string | null;
   description: string | null;
   url: string | null;
@@ -43,17 +44,27 @@ export async function discoverAgent(ensName: string): Promise<AgentDiscoverProfi
 
   try {
     // Address resolution + all text records in parallel.
-    const [address, x402, inft, memory, description, url, github, avatar] =
-      await Promise.all([
-        l1Client.getEnsAddress({ name: normalized }),
-        l1Client.getEnsText({ name: normalized, key: "x402-endpoint" }),
-        l1Client.getEnsText({ name: normalized, key: "0g-inft" }),
-        l1Client.getEnsText({ name: normalized, key: "0g-memory" }),
-        l1Client.getEnsText({ name: normalized, key: "description" }),
-        l1Client.getEnsText({ name: normalized, key: "url" }),
-        l1Client.getEnsText({ name: normalized, key: "com.github" }),
-        l1Client.getEnsText({ name: normalized, key: "avatar" }),
-      ]);
+    const [
+      address,
+      x402,
+      inft,
+      policy,
+      memory,
+      description,
+      url,
+      github,
+      avatar,
+    ] = await Promise.all([
+      l1Client.getEnsAddress({ name: normalized }),
+      l1Client.getEnsText({ name: normalized, key: "x402-endpoint" }),
+      l1Client.getEnsText({ name: normalized, key: "0g-inft" }),
+      l1Client.getEnsText({ name: normalized, key: "0g-storage-policy" }),
+      l1Client.getEnsText({ name: normalized, key: "0g-memory" }),
+      l1Client.getEnsText({ name: normalized, key: "description" }),
+      l1Client.getEnsText({ name: normalized, key: "url" }),
+      l1Client.getEnsText({ name: normalized, key: "com.github" }),
+      l1Client.getEnsText({ name: normalized, key: "avatar" }),
+    ]);
 
     if (!address) return null;
 
@@ -66,6 +77,7 @@ export async function discoverAgent(ensName: string): Promise<AgentDiscoverProfi
       address,
       x402Endpoint: x402,
       ogInft: inft,
+      ogStoragePolicy: policy,
       ogMemory: memory,
       description,
       url,
