@@ -58,6 +58,26 @@ Other agents can resolve `trove.web3wagmi.eth`, fetch the records, and discover 
 | **Compute** | Scaffolded | Wrapper present (`src/og-compute.ts`); broker funding gate is the live activation step |
 | **DA** | Scaffolded | Client present (`src/og-da.ts`); disperser endpoint config is the live activation step |
 
+## Auto-claim rewards (KeeperHub + Aave)
+
+Trove's headline pitch — "auto-claims reward tokens you'd forget" — is implemented end-to-end via Aave V3's delegated-claimer flow plus a KeeperHub workflow:
+
+```
+ONE-TIME (user signs once):
+  user → Aave RewardsController.setClaimer(user, KEEPERHUB_TURNKEY_WALLET)
+
+EVERY 15 MIN (KeeperHub cron):
+  1. GET /api/agent/rewards?address=USER  →  unclaimed amounts + claim tx
+  2. If unclaimed > 0  →  KeeperHub Turnkey signs claimAllRewardsOnBehalf
+  3. Rewards land in user's wallet
+  4. POST /api/agent/log  →  upload to 0G Storage
+  5. iNFT.updateMemory  →  commit new memoryHash on Galileo
+```
+
+The `setClaimer` permission only allows claiming, not redirecting — proceeds always go to the user's wallet, never KeeperHub's. See `keeperhub-workflow.json` for the full workflow definition. Live activation requires (a) user calling `setClaimer`, (b) KeeperHub's Turnkey wallet funded with Base ETH for gas (~$5 buys ~30 claims).
+
+Configured KeeperHub Turnkey claimer address: `0x1A09587D1f8D7BFB88454Abd51EB0354A2fdeDDd`
+
 ## Run locally
 
 ```bash

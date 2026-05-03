@@ -36,7 +36,11 @@ export async function GET(req: Request) {
 
   // Optional ?claimer=0x… returns a one-time setClaimer tx so the user can
   // authorize KeeperHub (or any delegated executor) to claim on their behalf.
-  const claimerParam = url.searchParams.get("claimer");
+  // Defaults to the configured KeeperHub Turnkey wallet if no override.
+  const claimerParam =
+    url.searchParams.get("claimer") ??
+    process.env.NEXT_PUBLIC_KEEPERHUB_CLAIMER_ADDRESS ??
+    null;
   const claimer =
     claimerParam && isValidAddress(claimerParam)
       ? (claimerParam as Address)

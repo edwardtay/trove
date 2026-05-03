@@ -151,7 +151,7 @@
     "AGENT_BASE_URL": "https://trove.web3wagmi.com",
     "USER_ADDRESS": "0x...",
     "PRINCIPAL_USD": "10000",
-    "KEEPERHUB_TURNKEY_WALLET": "0x... (the address users authorize via setClaimer)"
+    "KEEPERHUB_TURNKEY_WALLET": "0x1A09587D1f8D7BFB88454Abd51EB0354A2fdeDDd"
   },
   "_notes": [
     "Two parallel checks per cycle: tick (rebalance/harvest decision) and rewards_check (claimable Aave incentives).",
