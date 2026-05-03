@@ -6,6 +6,7 @@ import {
   isValidAddress,
   type PositionResult,
 } from "../src/onchain";
+import { EnsName } from "./EnsName";
 import { protocolName } from "../src/protocols";
 import { usePrivyWalletAddress } from "./usePrivyWalletAddress";
 import AgentRecommendation from "./AgentRecommendation";
@@ -216,9 +217,10 @@ export default function RealPositions({
         <div className="mt-3 card overflow-hidden">
           <div className="flex items-center justify-between gap-3 border-b border-hairline bg-subtle px-4 py-2.5">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[11px] tabular-nums text-ink-faint">
-                {shortAddr(active)}
-              </span>
+              <EnsName
+                address={active}
+                className="font-mono text-[11px] tabular-nums text-ink-faint"
+              />
               <button
                 onClick={() => {
                   setActive(null);
