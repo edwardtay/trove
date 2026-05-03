@@ -203,6 +203,68 @@ export default async function Home() {
       </header>
       </WalletGate>
 
+      {/* PRIMARY ACTION — wallet input/results, immediately above the fold.
+          Auto-fills with the connected wallet address; otherwise lets any
+          visitor paste any Base address to see what positions + rewards
+          Trove finds for it. */}
+      <CycleStatus />
+
+      <div id="positions" className="min-w-0">
+        <RealPositions
+          apyByProject={
+            state.ok
+              ? Object.fromEntries(
+                  state.allTops.map((p) => [
+                    p.project,
+                    {
+                      apyBase: p.apyBase ?? 0,
+                      apyReward: p.apyReward ?? 0,
+                    },
+                  ]),
+                )
+              : {}
+          }
+        />
+      </div>
+
+      {/* On-chain agent identity + audit kit — sits right below the action
+          surface so visitors who want proof can click into the artifacts. */}
+      <div className="mt-8">
+        <INftIdentityCard />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href="/api/proof"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            machine-readable proof bundle ↗
+          </Link>
+          <a
+            href="https://github.com/edwardtay/trove"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-elev px-3 py-1.5 text-[12px] font-semibold text-ink transition-colors hover:shadow-card"
+          >
+            source code ↗
+          </a>
+          <a
+            href="https://app.ens.domains/trove.web3wagmi.eth"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-elev px-3 py-1.5 text-[12px] font-semibold text-ink transition-colors hover:shadow-card"
+          >
+            ENS records ↗
+          </a>
+          <Link
+            href="/agent/trove.web3wagmi.eth"
+            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-elev px-3 py-1.5 text-[12px] font-semibold text-ink transition-colors hover:shadow-card"
+          >
+            ENS-resolved agent profile →
+          </Link>
+        </div>
+      </div>
+
       {/* "How to use this" — three concrete things a first-time visitor can
           actually do right now. Hidden once connected. */}
       <WalletGate showWhen="disconnected">
@@ -301,66 +363,8 @@ export default async function Home() {
         )}
       </WalletGate>
 
-      {/* Ambient liveness bar — shows last cycle + countdown to next. */}
-      <CycleStatus />
-
-      {/* Live agent identity — reads on-chain state from the iNFT contract
-          on 0G Galileo. Anchors the "this is a real on-chain agent" claim
-          for any visitor. */}
-      <div className="mt-8">
-        <INftIdentityCard />
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href="/api/proof"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
-          >
-            machine-readable proof bundle ↗
-          </Link>
-          <a
-            href="https://github.com/edwardtay/trove"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-elev px-3 py-1.5 text-[12px] font-semibold text-ink transition-colors hover:shadow-card"
-          >
-            source code ↗
-          </a>
-          <a
-            href="https://app.ens.domains/trove.web3wagmi.eth"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-elev px-3 py-1.5 text-[12px] font-semibold text-ink transition-colors hover:shadow-card"
-          >
-            ENS records ↗
-          </a>
-          <Link
-            href="/agent/trove.web3wagmi.eth"
-            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-elev px-3 py-1.5 text-[12px] font-semibold text-ink transition-colors hover:shadow-card"
-          >
-            ENS-resolved agent profile →
-          </Link>
-        </div>
-      </div>
-
-      <div id="positions" className="min-w-0">
-        <RealPositions
-          apyByProject={
-            state.ok
-              ? Object.fromEntries(
-                  state.allTops.map((p) => [
-                    p.project,
-                    {
-                      apyBase: p.apyBase ?? 0,
-                      apyReward: p.apyReward ?? 0,
-                    },
-                  ]),
-                )
-              : {}
-          }
-        />
-      </div>
-
+      {/* Find another agent by ENS — secondary discovery surface for
+          users who want to inspect other agents than Trove. */}
       <div className="min-w-0">
         <AgentDiscover />
       </div>
