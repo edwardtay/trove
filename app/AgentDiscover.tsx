@@ -46,7 +46,7 @@ export default function AgentDiscover() {
       </div>
       
       <p className="mb-4 text-[13px] leading-relaxed text-ink-muted">
-        Type an ENS name to read its public text records and discover agent metadata like its iNFT contract, 0G Storage memory hash, and x402 payment endpoint. Try <span className="font-mono text-emerald-600 font-semibold cursor-pointer" onClick={() => { setInput("trove-agent.eth"); setProfile(null); setError(null); }}>trove-agent.eth</span>
+        Type an ENS name to read its public text records and discover agent metadata like its iNFT contract, 0G Storage memory hash, and x402 payment endpoint. Try <span className="font-mono text-emerald-600 font-semibold cursor-pointer" onClick={() => { setInput("web3wagmi.eth"); setProfile(null); setError(null); }}>web3wagmi.eth</span>
       </p>
 
       <form onSubmit={handleSubmit} className="card flex items-center gap-2 p-3">
@@ -55,7 +55,7 @@ export default function AgentDiscover() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. trove-agent.eth"
+          placeholder="e.g. web3wagmi.eth"
           spellCheck={false}
           className="min-w-0 flex-1 bg-transparent font-mono text-[13px] tabular-nums text-ink placeholder:text-ink-faint focus:outline-none"
         />
