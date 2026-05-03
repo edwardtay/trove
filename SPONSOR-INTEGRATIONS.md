@@ -19,7 +19,7 @@ Trove uses **four** 0G primitives for persistent memory, identity, verifiable in
 | Code | Lines |
 |---|---|
 | Storage wrapper class (`StableRotatorStorage`) | [`src/og-storage.ts`](https://github.com/edwardtay/trove/blob/master/src/og-storage.ts) |
-| Cycle writes to 0G Storage | [`app/api/agent/log/route.ts:117`](https://github.com/edwardtay/trove/blob/master/app/api/agent/log/route.ts#L117) |
+| Cycle writes to 0G Storage | [`app/api/agent/log/route.ts:129`](https://github.com/edwardtay/trove/blob/master/app/api/agent/log/route.ts#L129) |
 | Retrieve by root for replay | [`app/api/agent/verify/route.ts:48`](https://github.com/edwardtay/trove/blob/master/app/api/agent/verify/route.ts#L48) |
 | CLI: `npm run verify-decision <root>` | [`scripts/verify-decision.ts`](https://github.com/edwardtay/trove/blob/master/scripts/verify-decision.ts) |
 | Encrypted policy blobs (NaCl secretbox) | [`src/og-encryption.ts`](https://github.com/edwardtay/trove/blob/master/src/og-encryption.ts) |
@@ -37,7 +37,7 @@ Trove uses **four** 0G primitives for persistent memory, identity, verifiable in
 | Contract source | [`contracts/StableRotatorAgent.sol`](https://github.com/edwardtay/trove/blob/master/contracts/StableRotatorAgent.sol) |
 | `recordDecision` increments counters | [`contracts/StableRotatorAgent.sol`](https://github.com/edwardtay/trove/blob/master/contracts/StableRotatorAgent.sol) (search `recordDecision`) |
 | Reader / writer wrapper | [`src/og-inft.ts`](https://github.com/edwardtay/trove/blob/master/src/og-inft.ts) |
-| Auto-commit per cron cycle | [`app/api/agent/log/route.ts:144-165`](https://github.com/edwardtay/trove/blob/master/app/api/agent/log/route.ts#L144) |
+| Auto-commit per cron cycle | [`app/api/agent/log/route.ts:147-167`](https://github.com/edwardtay/trove/blob/master/app/api/agent/log/route.ts#L147-L167) |
 | Live state endpoint | [`app/api/agent/inft/route.ts`](https://github.com/edwardtay/trove/blob/master/app/api/agent/inft/route.ts) |
 | OpenSea-style metadata | [`app/api/inft/metadata/[tokenId]/route.ts`](https://github.com/edwardtay/trove/blob/master/app/api/inft/metadata/%5BtokenId%5D/route.ts) |
 | Deploy script | [`scripts/deploy-inft.ts`](https://github.com/edwardtay/trove/blob/master/scripts/deploy-inft.ts) |
@@ -158,8 +158,8 @@ KeeperHub is the **execution boundary** — the schedule + retry + Turnkey-signe
 
 | Code | Lines |
 |---|---|
-| `setClaimer` calldata builder | [`src/aave-rewards.ts:85`](https://github.com/edwardtay/trove/blob/master/src/aave-rewards.ts#L85) |
-| `claimAllRewardsOnBehalf` builder | [`src/aave-rewards.ts:135`](https://github.com/edwardtay/trove/blob/master/src/aave-rewards.ts#L135) |
+| `setClaimer` calldata builder | [`src/aave-rewards.ts:89`](https://github.com/edwardtay/trove/blob/master/src/aave-rewards.ts#L89) |
+| `claimAllRewardsOnBehalf` builder | [`src/aave-rewards.ts:74`](https://github.com/edwardtay/trove/blob/master/src/aave-rewards.ts#L74) |
 | In-UI authorize flow | [`app/AuthorizeAutoClaim.tsx`](https://github.com/edwardtay/trove/blob/master/app/AuthorizeAutoClaim.tsx) |
 | Rewards endpoint that returns both txs | [`app/api/agent/rewards/route.ts`](https://github.com/edwardtay/trove/blob/master/app/api/agent/rewards/route.ts) |
 
