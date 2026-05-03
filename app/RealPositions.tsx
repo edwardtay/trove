@@ -11,6 +11,7 @@ import { protocolName } from "../src/protocols";
 import { usePrivyWalletAddress } from "./usePrivyWalletAddress";
 import AgentRecommendation from "./AgentRecommendation";
 import ProtocolLogo from "./ProtocolLogo";
+import AuthorizeAutoClaim from "./AuthorizeAutoClaim";
 
 export type PoolApyMap = Record<
   string,
@@ -384,6 +385,15 @@ export default function RealPositions({
           renders once a wallet has been queried (positions resolved or not
           — the agent can still recommend an initial deposit). */}
       {active && positions !== null && <AgentRecommendation address={active} />}
+
+      {/* One-time setClaimer authorization for KeeperHub auto-claim. Only
+          renders when wallet is connected (we need the user to sign), and
+          only meaningful for the connected user's own address. */}
+      {connectedAddress &&
+        active &&
+        active.toLowerCase() === connectedAddress.toLowerCase() &&
+        positions !== null &&
+        hasAny && <AuthorizeAutoClaim />}
     </section>
   );
 }
