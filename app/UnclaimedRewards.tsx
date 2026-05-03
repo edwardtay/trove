@@ -21,9 +21,17 @@ import {
   CheckCircle2,
   ExternalLink,
   Zap,
+  Network,
 } from "lucide-react";
-import { useSendTransaction, usePrivy, useConnectWallet } from "@privy-io/react-auth";
+import {
+  useSendTransaction,
+  usePrivy,
+  useConnectWallet,
+  useWallets,
+} from "@privy-io/react-auth";
 import { usePrivyWalletAddress } from "./usePrivyWalletAddress";
+
+const BASE_CHAIN_ID = 8453;
 
 type UnclaimedReward = {
   source: "aave" | "merkl";
@@ -62,6 +70,19 @@ export default function UnclaimedRewards({ address }: { address: string }) {
   const { sendTransaction } = useSendTransaction();
   const { login, authenticated } = usePrivy();
   const { connectWallet } = useConnectWallet();
+  const { wallets } = useWallets();
+
+  // Pick the wallet whose address matches `connected` so we can read its
+  // current chain + call switchChain() on it (Privy's per-wallet API).
+  const activeWallet = wallets.find(
+    (w) => w.address.toLowerCase() === connected?.toLowerCase(),
+  );
+  // wallet.chainId is CAIP-2 ("eip155:8453"). Numeric value is what we compare.
+  const currentChainId = activeWallet?.chainId
+    ? Number(activeWallet.chainId.split(":")[1])
+    : null;
+  const onBase = currentChainId === BASE_CHAIN_ID;
+  const [switching, setSwitching] = useState(false);
 
   function reconnectAs() {
     // Open the wallet picker so user can connect MetaMask (or any external
@@ -70,6 +91,23 @@ export default function UnclaimedRewards({ address }: { address: string }) {
     // usePrivyWalletAddress hook (which prefers external wallets) returns
     // the new address. No logout/login loop.
     connectWallet();
+  }
+
+  async function switchToBase() {
+    if (!activeWallet) return;
+    setSwitching(true);
+    setErrMsg(null);
+    try {
+      await activeWallet.switchChain(BASE_CHAIN_ID);
+    } catch (err) {
+      setErrMsg(
+        err instanceof Error
+          ? `Switch to Base failed: ${err.message}`
+          : String(err),
+      );
+    } finally {
+      setSwitching(false);
+    }
   }
 
   const [data, setData] = useState<RewardsResponse | null>(null);
@@ -153,9 +191,14 @@ export default function UnclaimedRewards({ address }: { address: string }) {
                 ⚠️ different from looked-up address — claim disabled
               </span>
             )}
-            {isOwnWallet && (
+            {isOwnWallet && !onBase && currentChainId && (
+              <span className="ml-2 text-rose-700">
+                ⚠️ on chain {currentChainId} — switch to Base (8453) to claim
+              </span>
+            )}
+            {isOwnWallet && onBase && (
               <span className="ml-2 text-emerald-700">
-                ✓ matches looked-up address — claim enabled
+                ✓ on Base — claim enabled
               </span>
             )}
           </>
@@ -243,6 +286,21 @@ export default function UnclaimedRewards({ address }: { address: string }) {
               >
                 <Zap className="h-3.5 w-3.5" />
                 Reconnect as {address.slice(0, 6)}…{address.slice(-4)}
+              </button>
+            ) : !onBase ? (
+              // Right wallet, wrong chain → switch to Base before signing
+              <button
+                onClick={switchToBase}
+                disabled={switching}
+                title={`Your wallet is on chainId ${currentChainId ?? "?"}. Click to switch to Base (8453).`}
+                className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-amber-700 disabled:cursor-wait disabled:opacity-60"
+              >
+                {switching ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Network className="h-3.5 w-3.5" />
+                )}
+                {switching ? "Switching…" : "Switch to Base"}
               </button>
             ) : (
               // Connected as the same wallet → enable the claim
