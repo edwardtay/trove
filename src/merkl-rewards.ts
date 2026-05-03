@@ -182,11 +182,18 @@ export async function getMerklRewards(
     return summary;
   }
 
-  // Flatten across chain entries (Base only here, but defensively iterate)
+  // Merkl's authoritative "claimable now" field is `r.pending` — it reflects
+  // the amount in the CURRENT on-chain merkle root that the user can claim.
+  // The (amount - claimed) delta is misleading: it includes amounts earned
+  // but not yet pushed to the on-chain root (waiting for next epoch publish).
+  // Using r.pending directly is what Merkl's own UI reads.
   const tempRewards: Omit<MerklReward, "priceUsd" | "valueUsd">[] = [];
   for (const chainEntry of data) {
     for (const r of chainEntry.rewards ?? []) {
       const pendingBig = BigInt(r.pending ?? "0");
+      // Skip entries where Merkl says 0 currently claimable, regardless of
+      // what (amount - claimed) suggests — those amounts will appear when
+      // Merkl publishes a new root.
       if (pendingBig <= 0n) continue;
 
       const decimals = r.token?.decimals ?? 18;

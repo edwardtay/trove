@@ -247,11 +247,13 @@ export default function UnclaimedRewards({ address }: { address: string }) {
         </>
       ) : (
         <p className="mt-2 text-[13px] leading-[1.5] text-amber-900/80">
-          <strong>Nothing claimable right now.</strong> The agent checked
-          Aave V3's RewardsController and Merkl's distributor on Base — no
-          unclaimed amounts for this wallet's positions. When new emissions
-          start, this panel updates automatically and KeeperHub (if authorized)
-          claims on schedule.
+          <strong>Nothing claimable in the current Merkl root.</strong> The
+          agent checked Aave V3&apos;s RewardsController and Merkl&apos;s
+          distributor on Base — no amounts in the on-chain merkle root for
+          this wallet right now. Merkl typically publishes a new root every
+          few hours; rewards earned in this epoch will appear here when the
+          next root lands. KeeperHub&apos;s cron workflow (if authorized)
+          will claim automatically once they do.
         </p>
       )}
     </div>
