@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 export const revalidate = 0;
@@ -62,6 +63,9 @@ export async function GET(req: Request) {
   // Try cwd first (typical Next.js standalone), then a couple of fallback
   // paths. Whichever resolves first wins.
   const candidates = [
+    // Production write target (writable by the nextjs user)
+    join(tmpdir(), "trove-og-state.json"),
+    // Legacy/local-dev paths
     join(process.cwd(), "og-state.json"),
     join(process.cwd(), "..", "og-state.json"),
     "/app/og-state.json",

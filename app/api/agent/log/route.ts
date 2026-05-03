@@ -24,13 +24,18 @@
 
 import { NextResponse } from "next/server";
 import { readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   StableRotatorStorage,
   type DecisionLog,
   type DecisionEntry,
 } from "../../../../src/og-storage";
 
-const STATE_PATH = "og-state.json";
+// Write to /tmp inside the container — /app is owned by root and not writable
+// by the `nextjs` user that the production image runs as. /tmp is always
+// writable. /api/decisions also reads this path so writes round-trip cleanly.
+const STATE_PATH = join(tmpdir(), "trove-og-state.json");
 
 type LogBody = {
   address: string;
