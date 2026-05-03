@@ -22,7 +22,7 @@ import {
   ExternalLink,
   Zap,
 } from "lucide-react";
-import { useSendTransaction } from "@privy-io/react-auth";
+import { useSendTransaction, usePrivy } from "@privy-io/react-auth";
 import { usePrivyWalletAddress } from "./usePrivyWalletAddress";
 
 type UnclaimedReward = {
@@ -60,6 +60,7 @@ type RewardsResponse = {
 export default function UnclaimedRewards({ address }: { address: string }) {
   const connected = usePrivyWalletAddress();
   const { sendTransaction } = useSendTransaction();
+  const { login, authenticated } = usePrivy();
 
   const [data, setData] = useState<RewardsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -193,33 +194,47 @@ export default function UnclaimedRewards({ address }: { address: string }) {
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
+            ) : !authenticated ? (
+              // Not connected at all → button opens Privy modal
+              <button
+                onClick={() => login()}
+                className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-amber-700"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Connect wallet to claim
+              </button>
+            ) : !isOwnWallet ? (
+              // Connected as a DIFFERENT wallet → can't claim someone else's
+              <button
+                disabled
+                title={`You're connected as a different wallet. Reconnect with the wallet that owns ${address.slice(0, 6)}…${address.slice(-4)} to claim its rewards.`}
+                className="inline-flex cursor-not-allowed items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white opacity-50"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Switch to this wallet to claim
+              </button>
             ) : (
+              // Connected as the same wallet → enable the claim
               <button
                 onClick={claimNow}
-                disabled={!isOwnWallet || claimPhase === "signing"}
-                title={
-                  isOwnWallet
-                    ? "Submits a single batched claim tx to Merkl + Aave"
-                    : "Connect this wallet to claim its rewards"
-                }
-                className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={claimPhase === "signing"}
+                title="Submits a single batched claim tx to Merkl"
+                className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-amber-700 disabled:cursor-wait disabled:opacity-60"
               >
                 {claimPhase === "signing" ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Zap className="h-3.5 w-3.5" />
                 )}
-                {claimPhase === "signing"
-                  ? "Sign in your wallet…"
-                  : isOwnWallet
-                    ? "Claim now (you sign)"
-                    : "Connect this wallet to claim"}
+                {claimPhase === "signing" ? "Sign in your wallet…" : "Claim now (you sign)"}
               </button>
             )}
             <span className="text-[11px] text-amber-900/60">
-              {isOwnWallet
-                ? "or authorize KeeperHub below to auto-claim every 15 min"
-                : "or any owner can authorize KeeperHub for unattended claims"}
+              {!authenticated
+                ? "or any owner can authorize KeeperHub for unattended claims (see panel below)"
+                : isOwnWallet
+                  ? "or authorize KeeperHub below to auto-claim every 15 min"
+                  : "this wallet's owner can authorize KeeperHub via the panel below"}
             </span>
           </div>
 
