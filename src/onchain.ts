@@ -133,7 +133,10 @@ export async function readPositions(
  */
 type BlockscoutToken = {
   token: {
-    address: string;
+    // Blockscout v2 returns `address_hash`; older deployments used `address`.
+    // Accept both for backwards compatibility.
+    address_hash?: string;
+    address?: string;
     name: string;
     symbol: string;
     decimals: string;
@@ -195,7 +198,9 @@ export async function detectPositions(
 
     const candidates: PositionResult[] = [];
     for (const item of items) {
-      const tokenAddr = item.token.address.toLowerCase();
+      const tokenAddrRaw = item.token.address_hash ?? item.token.address;
+      if (!tokenAddrRaw) continue;
+      const tokenAddr = tokenAddrRaw.toLowerCase();
       // Exclude plain underlyings (idle balances, not positions)
       if (tokenAddr === PLAIN_USDC || tokenAddr === PLAIN_USDBC || tokenAddr === PLAIN_WETH) continue;
       if (!isReceiptToken(item.token.name ?? "", item.token.symbol ?? "")) continue;
@@ -216,7 +221,7 @@ export async function detectPositions(
       candidates.push({
         project: inferProjectFromName(item.token.name, item.token.symbol),
         label: `${item.token.name} (${item.token.symbol})`,
-        receiptAddress: item.token.address as Address,
+        receiptAddress: tokenAddrRaw as Address,
         balanceUsd,
         raw: item.value,
         source: "detected",
