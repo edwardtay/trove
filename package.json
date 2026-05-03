@@ -15,6 +15,7 @@
     "og:log-decision": "tsx scripts/og-log-decision.ts",
     "og:fund-compute": "tsx scripts/og-fund-compute.ts",
     "og:analyze": "tsx scripts/og-analyze.ts",
+    "verify-decision": "tsx scripts/verify-decision.ts",
     "og:deploy-router": "hardhat run scripts/deploy-router.ts --network 0g-galileo",
     "og:deploy-inft": "hardhat run scripts/deploy-inft.ts --network 0g-galileo",
     "og:mint-agent": "hardhat run scripts/og-mint-agent.ts --network 0g-galileo"
