@@ -6,7 +6,7 @@ Trove is a verifiable USDC yield agent on Base that can say no: it watches live 
 
 ## Why Judges Should Remember It
 
-Most hackathon yield agents overclaim autonomy. Trove makes the opposite bet: fund movement should be deterministic, reproducible, and auditable. The agent uses live market/wallet reads, but its decision core is a pure policy function with tests and a 90-day benchmark. 0G is used for memory and identity, KeeperHub for scheduled execution boundaries, and x402 for agent-to-agent monetization.
+Most hackathon yield agents overclaim autonomy. Trove makes the opposite bet: fund movement should be deterministic, reproducible, and auditable. The agent uses live market/wallet reads, but its decision core is a pure policy function with tests and a 90-day benchmark. **Every cycle exercises four 0G layers in sequence:** decision *inputs* are published to **0G DA** (independent replay anchor), the deterministic policy and a verifiable LLM analysis on **0G Compute** run in parallel, the resulting decision log is committed to **0G Storage**, and the new memory hash is committed on-chain to the agent's **0G Galileo iNFT**. KeeperHub provides the scheduled execution boundary; x402 makes the policy decision callable as a paid service to other agents.
 
 ## Demo Path
 
@@ -21,7 +21,7 @@ Most hackathon yield agents overclaim autonomy. Trove makes the opposite bet: fu
 
 | Track | Why Trove Fits |
 |---|---|
-| 0G OpenAgents | 0G Storage decision memory, Galileo iNFT agent identity, clone lineage, deterministic verifiable reasoning |
+| 0G OpenAgents | Full-stack 0G usage in one agent loop: **DA** for decision-input availability, **Compute** for verifiable LLM second-opinion, **Storage** for decision memory, **Galileo iNFT** for agent identity + clone lineage |
 | KeeperHub | Scheduled workflow boundary, Turnkey execution wallet model, REST/MCP workflow client, x402 buyer/seller integration |
 
 ## Criteria Matrix
@@ -52,7 +52,34 @@ Most hackathon yield agents overclaim autonomy. Trove makes the opposite bet: fu
 
 ## Honest Boundaries
 
-Trove does not claim live 0G DA, live 0G Compute inference, unattended fund movement, or MEV protection. The live submission proves the product loop, memory/identity layer, execution boundary, and payment interface. Protocol calldata adapters, funded KeeperHub tx execution, 0G Compute analysis, and RoyaltyRouter settlement are production follow-ups.
+Trove does **not** claim unattended user fund movement or MEV protection. Decision *recommendations* are computed live (deterministic policy + 0G Compute LLM in parallel) and inputs are published to **0G DA** for independent replay; **execution** of the recommended rebalance still requires a funded KeeperHub workflow with protocol-specific calldata adapters, which is the production follow-up. RoyaltyRouter settlement of x402 revenue along the iNFT lineage chain is implemented but not yet wired to the live x402 facilitator.
+
+## Verifiable Decision Trace
+
+Every call to `POST /api/agent/decide` (the x402-paid endpoint) and every `GET /api/agent/tick` (the keeper-facing endpoint) returns:
+
+```jsonc
+{
+  "verdict": "hold | move | harvest",          // deterministic policy
+  "reason": "policy explanation",
+  "ogDA": {                                    // verifiable input replay
+    "blobId": "<0G-DA commitment>",
+    "endpoint": "<disperser URL>",
+    "submittedAt": "...", "byteLength": 1234,
+    "label": "decision-inputs:<addr>:<cycleAt>"
+  },
+  "ogCompute": {                               // verifiable LLM second opinion
+    "recommendation": "move | hold | harvest",
+    "reasoning": "<LLM justification>",
+    "model": "<provider model>",
+    "provider": "<0G Compute provider address>",
+    "inferenceMs": 1234,
+    "agreesWithPolicy": true
+  }
+}
+```
+
+Anyone can fetch `ogDA.blobId` from the disperser, replay the open-source policy against those exact inputs, and confirm `verdict` is reproducible. `ogCompute` is best-effort: if the broker is unfunded or the provider is unavailable, the policy verdict stands alone — Compute is enrichment, not critical-path.
 
 ## Final Form Checklist
 
