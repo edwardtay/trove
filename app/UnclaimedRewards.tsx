@@ -26,10 +26,10 @@ import { useSendTransaction } from "@privy-io/react-auth";
 import { usePrivyWalletAddress } from "./usePrivyWalletAddress";
 
 type UnclaimedReward = {
+  source: "aave" | "merkl";
   rewardToken: string;
   symbol: string;
   decimals: number;
-  amountRaw: string;
   amountFormatted: string;
 };
 
@@ -45,8 +45,12 @@ type RewardsResponse = {
   checkedAt: string;
   aaveAssetsChecked: number;
   unclaimed: UnclaimedReward[];
-  totalUsdEstimate: number | null;
-  claimTx: { manual: TxPayload; delegated: TxPayload } | null;
+  totalCount: number;
+  sources: {
+    aave: { unclaimedCount: number };
+    merkl: { unclaimedCount: number };
+  };
+  claimTx: TxPayload | null;
   setClaimerTx: TxPayload | null;
 };
 
@@ -75,9 +79,9 @@ export default function UnclaimedRewards({ address }: { address: string }) {
     setClaimPhase("signing");
     try {
       const result = await sendTransaction({
-        to: data.claimTx.manual.to,
-        data: data.claimTx.manual.data,
-        value: data.claimTx.manual.value,
+        to: data.claimTx.to,
+        data: data.claimTx.data,
+        value: data.claimTx.value,
         chainId: 8453,
       });
       const hash =
@@ -117,24 +121,35 @@ export default function UnclaimedRewards({ address }: { address: string }) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
           <Coins className="h-3 w-3" aria-hidden />
-          Aave V3 unclaimed rewards
+          Unclaimed rewards · Aave + Merkl on Base
         </div>
         <span className="font-mono text-[11px] text-amber-900/60">
-          {data.aaveAssetsChecked} aTokens checked
+          aave: {data.sources.aave.unclaimedCount} · merkl: {data.sources.merkl.unclaimedCount}
         </span>
       </div>
 
       {hasRewards ? (
         <>
           <div className="mt-3 space-y-1.5">
-            {data.unclaimed.map((r) => (
+            {data.unclaimed.map((r, i) => (
               <div
-                key={r.rewardToken}
+                key={`${r.source}-${r.rewardToken}-${i}`}
                 className="flex items-center justify-between rounded-md border border-amber-200/60 bg-white/40 px-3 py-2"
               >
-                <span className="font-mono text-[12px] text-amber-900">
-                  {r.symbol}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-sm px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                      r.source === "aave"
+                        ? "bg-purple-100 text-purple-700"
+                        : "bg-pink-100 text-pink-700"
+                    }`}
+                  >
+                    {r.source}
+                  </span>
+                  <span className="font-mono text-[12px] text-amber-900">
+                    {r.symbol}
+                  </span>
+                </div>
                 <span className="font-mono text-[14px] font-semibold tabular-nums text-amber-900">
                   {Number(r.amountFormatted).toLocaleString(undefined, {
                     maximumFractionDigits: 6,
@@ -187,10 +202,11 @@ export default function UnclaimedRewards({ address }: { address: string }) {
         </>
       ) : (
         <p className="mt-2 text-[13px] leading-[1.5] text-amber-900/80">
-          <strong>$0 unclaimed right now.</strong> Aave V3 on Base has no active
-          incentive emissions for the aTokens you hold. The agent re-checks
-          every cycle — when emissions resume, this panel updates automatically
-          and KeeperHub (if authorized) claims on schedule. No leak today.
+          <strong>Nothing claimable right now.</strong> The agent checked
+          Aave V3's RewardsController and Merkl's distributor on Base — no
+          unclaimed amounts for this wallet's positions. When new emissions
+          start, this panel updates automatically and KeeperHub (if authorized)
+          claims on schedule.
         </p>
       )}
     </div>

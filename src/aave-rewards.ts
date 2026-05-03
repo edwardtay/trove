@@ -28,11 +28,14 @@ const client = createPublicClient({
 });
 
 /**
- * Aave V3 RewardsController on Base mainnet.
- * Source: https://docs.aave.com/developers/deployed-contracts/v3-mainnet/base
+ * Aave V3 RewardsController on Base mainnet. Verified by querying any
+ * Aave V3 Base aToken's `getIncentivesController()` function.
+ *
+ * Note: most active Aave Base reward campaigns flow through Merkl rather
+ * than this controller. See `src/merkl-rewards.ts` for the Merkl path.
  */
 export const AAVE_REWARDS_CONTROLLER: Address =
-  "0x21202b9DDc8a04D4A02C2EeA3CB78e8c00bd56Fc";
+  "0xf9cc4F0D883F1a1eb2c253bdb46c254Ca51E1F44";
 
 const REWARDS_CONTROLLER_ABI = [
   {
