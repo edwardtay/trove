@@ -86,15 +86,28 @@ export default function INftIdentityCard() {
           <Cpu className="h-3 w-3" aria-hidden />
           Agent identity · iNFT on 0G Galileo
         </div>
-        <a
-          href={explorerUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 font-mono text-[10px] text-emerald-700 underline-offset-2 hover:underline"
-        >
-          view on explorer
-          <ExternalLink className="h-3 w-3" />
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href={`/api/inft/metadata/${data.tokenId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="OpenSea-style ERC-721 metadata. Live counters and 0G Storage hashes — pulls from on-chain agents() getter on every request."
+            className="inline-flex items-center gap-1 font-mono text-[10px] text-emerald-700 underline-offset-2 hover:underline"
+          >
+            metadata json
+            <ExternalLink className="h-3 w-3" />
+          </a>
+          <a
+            href={explorerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Explorer shows token info but no metadata image — that's because StableRotatorAgent is ERC-7857-inspired and exposes rich state via the custom agents() getter, not standard tokenURI(). Click 'metadata json' for the full on-chain state."
+            className="inline-flex items-center gap-1 font-mono text-[10px] text-emerald-700 underline-offset-2 hover:underline"
+          >
+            view on explorer
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
