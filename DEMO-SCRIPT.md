@@ -1,126 +1,134 @@
-# Demo Video Script — Trove (90 seconds, target ≤120s)
+# Demo Video Script — Trove (90 seconds, real-world framing)
 
-Designed for screen-recording with voice-over. Open all the URLs in tabs before you start. Speak in short sentences with short pauses between sections.
+Built around a specific user pain point: **"I deposited USDC into Aave and forgot to claim the reward tokens that pile up on top."** Show the problem, show the fix, show the on-chain proof. No abstract pitching.
 
 ---
 
 ## Setup before recording
 
-Open these URLs in tabs (in order, left → right):
-
+**Tabs in order:**
 1. `https://trove.web3wagmi.com/` — homepage
-2. `https://trove.web3wagmi.com/api/proof` — proof bundle (open in tab, format JSON)
-3. `https://app.ens.domains/trove.web3wagmi.eth` — ENS profile
-4. `https://chainscan-galileo.0g.ai/address/0x390c17AC063F7E64c93ccC1E3a9381b14D68fB64` — iNFT explorer
-5. `https://trove.web3wagmi.com/api/agent/decide` — POST endpoint (will show 402 in browser)
-6. `https://trove.web3wagmi.com/notes` — full architecture write-up
+2. `https://app.aave.com/` — real Aave UI for the same wallet (proof we read the same data)
+3. `https://trove.web3wagmi.com/api/proof` — proof endpoint (open as JSON)
+4. A terminal window — for the `verify-decision` command live demo
+5. `https://chainscan-galileo.0g.ai/address/0x390c17AC063F7E64c93ccC1E3a9381b14D68fB64` — iNFT explorer
 
-Also: have wallet `0x38430336153468dcf36af5cea7d6bc472425633a` ready to paste (it has aWETH + Merkl rewards visible).
-
----
-
-## Script (~90 seconds)
-
-### 0–10s · HOOK (no logos, no team intro)
-
-**Voice-over:**
-> "Most yield agents over-promise autonomy. Trove makes the opposite bet."
-
-**Screen:** Black or just hero. Cut to homepage at ~5s.
+**Test wallet to use throughout:** `0x38430336153468dcf36af5cea7d6bc472425633a` (has aWETH + Merkl rewards visible — picked because it represents a normal DeFi user, not a whale)
 
 ---
 
-### 10–25s · DEMO 1 — the unique angle
+## Script (~95 seconds, room to breathe)
 
-**Action:** On homepage, paste `0x38430336153468dcf36af5cea7d6bc472425633a` into the wallet check input. Click check.
+### 0–10s · OPEN ON THE PROBLEM (no logos, no team intro)
 
 **Voice-over:**
-> "Paste any Base wallet. Trove finds every position — Aave, Morpho vaults, USDS — values them in real time. Then it checks Aave's RewardsController and Merkl's distributor for unclaimed rewards. Same data your wallet sees on app.aave.com."
+> "If you've supplied USDC to Aave on Base, there's a good chance you have unclaimed reward tokens piling up. Most people never claim. That's the problem Trove solves."
 
-**Screen:** Show the position table with detected aWETH ($42), Morpho GTUSDA ($21), etc. Then scroll to Unclaimed Rewards panel showing the Merkl tokens.
+**Screen:** Cut to Aave UI (`app.aave.com`) showing the user's wallet with "Available rewards: $0.93" or whatever number is visible. Highlight that number with cursor.
 
 ---
 
-### 25–45s · DEMO 2 — the verifiable trace (THE KILLER SHOT)
+### 10–25s · DEMO 1 — Trove sees what Aave shows, instantly
 
-**Action:** Click the `/api/proof` tab. Highlight specific fields.
+**Action:** Switch to `trove.web3wagmi.com`. Paste `0x38430336153468dcf36af5cea7d6bc472425633a`. Hit "check."
 
 **Voice-over:**
-> "Every claim Trove makes is checkable from this one endpoint. ENS identity at `trove.web3wagmi.eth`, iNFT live on 0G Galileo as token zero, 0G Storage hashes for the agent's policy and memory, KeeperHub workflow status. Self-probing — the proof endpoint itself queries the Merkl disperser to verify reachability."
+> "Paste any wallet — Trove finds every DeFi position, not just Aave USDC. Here we see aWETH, a Morpho vault, USDS — $79 across four protocols. Below that: the same unclaimed Merkl rewards Aave's UI is showing. Same data source — Merkl's distributor on Base."
 
-**Screen:** Show `liveStatus0G`, `ensIdentity.profile`, `integrationTruth.live` array.
+**Screen:** Position table loads, scroll to the Unclaimed Rewards panel. The 4 Merkl rewards (sUP, YO, SUMR, WELL) appear with USD totals. Briefly toggle back to Aave's UI to show the totals match.
 
 ---
 
-### 45–60s · DEMO 3 — agent identity is on-chain
+### 25–40s · DEMO 2 — The agent's verdict + reasoning
 
-**Action:** Switch to the iNFT identity card on the homepage (scroll to it). Then click the explorer link to open chainscan.
+**Action:** Scroll to the AGENT SAYS panel showing "Hold" with reasoning.
 
 **Voice-over:**
-> "The agent isn't just a server-side daemon. It's an on-chain object — token zero in the StableRotatorAgent contract. Memory hash, policy hash, decision counters — all stored on-chain at every cycle. Other agents can find Trove by resolving `trove.web3wagmi.eth` — the ENS subname resolves to the agent's address, and the text records describe the full integration footprint. No central directory needed."
+> "An agent that can say no. Right now Trove says HOLD — the APY delta isn't worth the gas to rebalance. It explains why, with the math. Most yield aggregators chase APY blindly. Trove refuses moves that don't pay for themselves. That's what makes it safe to run unattended."
 
-**Screen:** Show the iNFT card with decision counts. Brief flash to ENS app showing text records.
+**Screen:** Agent recommendation panel. Highlight the verdict + the policy reasoning ("delta 0.43% below threshold 0.5%").
 
 ---
 
-### 60–75s · DEMO 4 — autonomous claim loop
+### 40–55s · DEMO 3 — Verifiable, not just claimed
 
-**Action:** Show the AuthorizeAutoClaim button on homepage. Then briefly pop the workflow JSON file in GitHub.
+**Action:** Switch to terminal. Run `npm run verify-decision -- 0x7426fb9ca3e5f81237612c31bbcb7fba330f41679c6df18ca09824dc2fff124f`
 
 **Voice-over:**
-> "Headline pitch: auto-claims rewards you'd forget. Two execution paths: user signs once via Aave's setClaimer, then KeeperHub's cron workflow auto-claims forever. Or any caller can claim Merkl rewards on the user's behalf since proofs hardcode the recipient. Workflow file in the repo: thirteen nodes, two-chain execution, branched on rewards and verdicts."
+> "Verifiable means a real command anyone can run. This script downloads the agent's decision log from 0G Storage, replays the same policy locally, and confirms every recorded verdict reproduces. No off-chain LLM could have biased the decisions — they're deterministic and falsifiable."
 
-**Screen:** AuthorizeAutoClaim button → flash to keeperhub-workflow.json on GitHub.
+**Screen:** Show terminal output: ✅ PASS per entry, then summary "All entries reproduce — policy was applied deterministically."
 
 ---
 
-### 75–90s · CLOSE — honest boundaries
+### 55–70s · DEMO 4 — KeeperHub auto-claim (the "set and forget" story)
 
-**Action:** Scroll to `/notes` to show the Live Status panel. End on the iNFT identity card.
+**Action:** Back on homepage, scroll to the AuthorizeAutoClaim button. Click "Authorize" but cancel the wallet popup (don't actually sign).
 
 **Voice-over:**
-> "Honest boundaries section: 0G DA wired but disperser not live. 0G Compute integrated but broker funding gates inference. KeeperHub Turnkey wallet shipped but not yet funded. We say what we ship and what we don't. Five sponsor integrations, real on-chain artifacts, public repo at github.com/edwardtay/trove. Trove."
+> "One click. User signs Aave's setClaimer — KeeperHub's wallet now has permission to claim rewards on their behalf, never to redirect them. From then on, KeeperHub's cron workflow checks every 15 minutes: if rewards are claimable, it submits a single batched claim transaction. Proceeds land in the user's wallet. The user never thinks about it again."
 
-**Screen:** End on the iNFT card with the contract address visible.
+**Screen:** Show the signature popup (Privy modal). Briefly switch to a tab showing the workflow JSON file in the GitHub repo — scroll past the 13 nodes.
+
+---
+
+### 70–85s · DEMO 5 — On-chain identity, ENS-discoverable
+
+**Action:** Scroll to the iNFT identity card on the homepage. Hover the explorer link. Then briefly show `app.ens.domains/trove.web3wagmi.eth`.
+
+**Voice-over:**
+> "The agent isn't just a backend daemon — it's an iNFT on 0G Galileo. Token zero, decision counters, memory hash committed every cycle. And it's discoverable by ENS — `trove.web3wagmi.eth` resolves to the agent's address, with text records pointing at the iNFT contract, the x402 endpoint, the policy hash, all on-chain. Other agents find Trove by name, no API key, no signed handshake."
+
+**Screen:** iNFT identity card showing token #0, decision counters, hashes. Switch to ENS app showing all 8 text records.
+
+---
+
+### 85–95s · CLOSE — honest scope
+
+**Action:** Brief shot of `/notes` Live Status snapshot or `/api/proof`.
+
+**Voice-over:**
+> "Five sponsor integrations live and verifiable. Honest boundaries documented — Compute broker funding, Turnkey wallet activation, all explicit. Code at github.com/edwardtay/trove. Trove."
+
+**Screen:** End on the `/notes` Live Status snapshot panel with the green checkmarks.
 
 ---
 
 ## Production tips
 
-**Do:**
-- Speak in punchy short sentences. Pause between sections.
-- Use Loom or QuickTime + Descript for cuts.
-- Record at 1080p, 60fps.
-- Mouse cursor should be VISIBLE — zoom browser to 110% for clearer screen text.
-- Voice-over recorded separately, layered on top.
+**The big shift from "showcase" to "real-world":**
+- Open with the user's pain (forgotten rewards), not the architecture
+- Show Aave's UI as proof we read the same data — establishes credibility immediately
+- Run `verify-decision` LIVE in a terminal — turns "verifiable" from claim to evidence
+- Use real numbers throughout — don't abstract them away
 
-**Don't:**
-- No logo intros, no music, no transitions.
-- No team photos.
-- No reading the README aloud.
-- No "thank you for watching."
+**Voice-over discipline:**
+- Speak like you're explaining to a peer dev, not a marketing audience
+- Pause between segments for breath and to let the screen catch up
+- Don't say "as you can see" — let them see
 
-**Pacing trick:**
-- 90 seconds = roughly 200-250 words spoken. The script above is ~190 words.
-- If you fumble a section, cut and restart that segment only. Stitch in Descript.
+**One take vs many:**
+- Record each section separately (~15s each)
+- Stitch in Descript or QuickTime
+- Final cut should feel continuous
 
-**Two takes:**
-- Take 1: just say everything end-to-end. You'll go long (~120s) and miss beats.
-- Take 2: do shorter takes per section. ~20s per section. Stitch them.
+**Length sanity:**
+- Target 90s, accept up to 110s
+- If you go past 120s, cut a section (probably DEMO 5 — iNFT identity is also visible in DEMO 3's verify-decision output)
 
 ---
 
-## Submission form details (paste these)
+## Submission form
 
 - **GitHub:** `https://github.com/edwardtay/trove`
 - **Live demo:** `https://trove.web3wagmi.com`
 - **Proof endpoint:** `https://trove.web3wagmi.com/api/proof`
 - **iNFT contract:** `0x390c17AC063F7E64c93ccC1E3a9381b14D68fB64`
 - **iNFT explorer:** `https://chainscan-galileo.0g.ai/address/0x390c17AC063F7E64c93ccC1E3a9381b14D68fB64`
-- **ENS identity:** `trove.web3wagmi.eth`
-- **KeeperHub Turnkey wallet:** `0x1A09587D1f8D7BFB88454Abd51EB0354A2fdeDDd`
-- **Tracks:** 0G OpenAgents, KeeperHub, ENS
+- **ENS:** `trove.web3wagmi.eth`
+- **KeeperHub Turnkey:** `0x1A09587D1f8D7BFB88454Abd51EB0354A2fdeDDd`
+- **Verify a decision (CLI):** `npm run verify-decision -- 0x7426fb9c...`
 
-## Two-line elevator pitch (for the form's "describe project")
+## Two-sentence elevator pitch
 
-> A USDC yield agent on Base that earns the rewards most people forget to claim. iNFT identity on 0G Galileo, ENS-discoverable at `trove.web3wagmi.eth`, paid policy decisions via x402, and a KeeperHub workflow that auto-claims rewards across Aave + Merkl on a 15-minute cron. Honest engineering — every claim verifiable at `/api/proof`.
+> Trove is a USDC yield agent on Base that finds and auto-claims the reward tokens you forget about. Identity as an iNFT on 0G Galileo, discoverable by ENS at `trove.web3wagmi.eth`, decisions verifiable via a CLI anyone can run.
