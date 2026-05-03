@@ -97,6 +97,18 @@ npm run og:deploy-inft          # deploy StableRotatorAgent.sol to Galileo
 npm run og:mint-agent           # mint token #0
 ```
 
+## Verify any decision independently
+
+The `verify-decision` script proves Trove's "verifiable" claim is real — anyone can take a decision-log root from 0G Storage and replay the deterministic policy locally to confirm the recorded verdict reproduces:
+
+```bash
+npm run verify-decision -- 0x7426fb9ca3e5f81237612c31bbcb7fba330f41679c6df18ca09824dc2fff124f
+# → fetches log from 0G Storage, replays shouldRebalance() per entry,
+#   reports PASS/MISMATCH per cycle, exits 0 if all reproduce.
+```
+
+This is the falsifiable form of "deterministic policy" — anyone, anytime, can run this against any historical decision and either confirm or expose a discrepancy.
+
 ## Endpoints
 
 ```
