@@ -99,12 +99,23 @@ export default async function Home() {
           comes from the backdrop blur and slight bg shift. */}
       <div className="sticky top-0 z-10 -mx-4 mb-6 bg-paper/85 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:mb-8 sm:px-6">
         <div className="flex items-center justify-between gap-4">
-          <Logo size={24} withWordmark />
+          <div className="flex items-center gap-3">
+            <Logo size={24} withWordmark />
+            <a
+              href="https://app.ens.domains/trove.web3wagmi.eth"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group hidden items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50/60 px-2 py-1 font-mono text-[11px] text-emerald-900 transition-colors hover:bg-emerald-100/60 sm:inline-flex"
+              title="Trove's ENS identity — discoverable text records on-chain"
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
+                aria-hidden
+              />
+              trove.web3wagmi.eth
+            </a>
+          </div>
           <div className="hidden items-center gap-1.5 text-[11px] text-ink-muted sm:flex">
-            <span
-              className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
-              aria-hidden
-            />
             <span>live · Base mainnet</span>
             <span className="mx-1 text-ink-faint">·</span>
             <span className="font-mono tabular-nums">
