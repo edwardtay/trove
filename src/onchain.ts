@@ -25,9 +25,14 @@ const publicClient = createPublicClient({
   transport: http(BASE_RPC),
 });
 
+// Mainnet for ENS resolution (positions endpoint accepts ENS names).
+// LlamaRPC is faster than viem's default public RPC.
 const l1Client = createPublicClient({
   chain: mainnet,
-  transport: http(),
+  transport: http(
+    process.env.MAINNET_RPC_URL ?? "https://eth.llamarpc.com",
+    { timeout: 8_000, retryCount: 1 },
+  ),
 });
 
 // Verified addresses on Base mainnet (chainId 8453).

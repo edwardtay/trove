@@ -34,9 +34,14 @@ export type AgentDiscoverProfile = {
 // All text records are real on-chain — verifiable at app.ens.domains.
 export const TROVE_AGENT_ENS = "trove.web3wagmi.eth";
 
+// Mainnet RPC for ENS resolution. The default viem public RPC is heavily
+// rate-limited; LlamaRPC is fast and free. Override via env if needed.
+const MAINNET_RPC =
+  process.env.MAINNET_RPC_URL ?? "https://eth.llamarpc.com";
+
 const l1Client = createPublicClient({
   chain: mainnet,
-  transport: http(),
+  transport: http(MAINNET_RPC, { timeout: 8_000, retryCount: 1 }),
 });
 
 export async function discoverAgent(ensName: string): Promise<AgentDiscoverProfile | null> {
