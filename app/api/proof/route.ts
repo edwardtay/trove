@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getKeeperHubStatus } from "../../../src/keeperhub-status";
 import { OGDataAvailability } from "../../../src/og-da";
 import { StableRotatorCompute } from "../../../src/og-compute";
+import { discoverAgent, TROVE_AGENT_ENS } from "../../../src/agent-ens";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -40,6 +41,11 @@ export async function GET(req: Request) {
   const compute = new StableRotatorCompute();
   const computeLive = compute.isConfigured;
 
+  // Resolve canonical ENS identity. If text records aren't set yet,
+  // ensProfile is null — judges can verify which records are missing.
+  const ensProfile = await discoverAgent(TROVE_AGENT_ENS).catch(() => null);
+  const ensLive = ensProfile !== null;
+
   const daLive = daHealth !== null;
   const liveItems = [
     "0G Storage policy config and decision logs",
@@ -51,6 +57,10 @@ export async function GET(req: Request) {
   if (daLive) liveItems.push("0G DA decision-input publication (per-cycle)");
   if (computeLive)
     liveItems.push("0G Compute verifiable LLM analysis (per-cycle, parallel to policy)");
+  if (ensLive)
+    liveItems.push(
+      `ENS-resolvable agent identity at ${TROVE_AGENT_ENS} with on-chain text records`,
+    );
 
   const notClaimedItems: string[] = [];
   if (!daLive) notClaimedItems.push("0G DA publication unreachable from this deployment");
@@ -111,6 +121,12 @@ export async function GET(req: Request) {
       dataAvailability: daLive,
       compute: computeLive,
       ...(daHealth ? { daHealthCheck: daHealth } : {}),
+    },
+    ensIdentity: {
+      name: TROVE_AGENT_ENS,
+      registry: "https://app.ens.domains/" + TROVE_AGENT_ENS,
+      resolved: ensLive,
+      profile: ensProfile,
     },
     integrationTruth: {
       live: liveItems,

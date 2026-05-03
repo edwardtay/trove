@@ -29,8 +29,9 @@ export type AgentDiscoverProfile = {
   avatar: string | null;
 };
 
-// Canonical Trove agent identity. All text records are real on-chain.
-export const TROVE_AGENT_ENS = "web3wagmi.eth";
+// Canonical Trove agent identity (ENS subname under web3wagmi.eth).
+// All text records are real on-chain — verifiable at app.ens.domains.
+export const TROVE_AGENT_ENS = "trove.web3wagmi.eth";
 
 const l1Client = createPublicClient({
   chain: mainnet,
