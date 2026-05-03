@@ -1,20 +1,24 @@
 "use client";
 
 /**
- * Returns the connected Privy wallet address if Privy is configured AND the
- * user is authenticated. Otherwise returns null.
+ * Returns the address of the wallet the user wants to SIGN with.
  *
- * This is a defensive wrapper around `usePrivy` because we conditionally
- * mount `PrivyProvider` based on `NEXT_PUBLIC_PRIVY_APP_ID`. If Privy isn't
- * mounted, calling its hooks throws — so we check the env var first and
- * skip the hook entirely when it's absent.
+ * Resolution order:
+ *   1. First connected EXTERNAL wallet (MetaMask, Coinbase, Rainbow,
+ *      WalletConnect) from `useWallets()` — this is what the user
+ *      explicitly connected to act as.
+ *   2. Privy embedded wallet (created from email/social login) as fallback.
+ *   3. Email/SMS account address as ultra-fallback.
  *
- * The conditional-hook pattern is normally taboo, but in our case the env
- * var is read once at module load and never changes during the lifetime
- * of a page render, so React's hook-rules invariant (same hooks called in
- * same order on every render) is preserved.
+ * `useWallets()` is Privy's canonical hook for "currently connected wallets"
+ * and updates immediately when `connectWallet()` from `useConnectWallet`
+ * succeeds. Reading from `user.linkedAccounts` directly was unreliable
+ * because the React-state propagation differs.
+ *
+ * Defensive about Privy not being mounted (we conditionally mount it via
+ * NEXT_PUBLIC_PRIVY_APP_ID).
  */
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 const PRIVY_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
 
@@ -23,27 +27,24 @@ export function usePrivyWalletAddress(): string | null {
     return null;
   }
   // Inside this branch the PrivyProvider is mounted (see app/layout.tsx)
-  // so usePrivy is safe to call.
+  // so usePrivy + useWallets are safe to call.
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { authenticated, user } = usePrivy();
-  if (!authenticated || !user) return null;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { wallets, ready: walletsReady } = useWallets();
 
-  // Prefer EXTERNAL wallets (MetaMask, Coinbase, Rainbow, WalletConnect)
-  // over Privy embedded wallets. If a user explicitly connected MetaMask,
-  // they want THAT address to be the active one — not the embedded wallet
-  // Privy may have created earlier from an email/social login.
-  const linked = user.linkedAccounts ?? [];
-  for (const acc of linked) {
-    if (acc.type === "wallet") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const w = acc as any;
-      const clientType = w.walletClientType ?? w.connectorType ?? "";
-      if (clientType && clientType !== "privy" && w.address) {
-        return w.address as string;
-      }
-    }
+  if (!authenticated) return null;
+
+  if (walletsReady && wallets.length > 0) {
+    // Prefer external wallets over embedded.
+    const external = wallets.find((w) => w.walletClientType !== "privy");
+    if (external?.address) return external.address;
+    // Fallback to first connected wallet (could be embedded).
+    const first = wallets[0];
+    if (first?.address) return first.address;
   }
 
-  // Fallback to whatever Privy considers the primary wallet.
-  return user.wallet?.address ?? null;
+  // Last-resort fallbacks from the user object.
+  if (user?.wallet?.address) return user.wallet.address;
+  return null;
 }
