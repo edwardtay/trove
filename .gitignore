@@ -17,3 +17,4 @@ tsconfig.typecheck.tsbuildinfo
 
 # CapRover deploy artifacts
 temporary-captain-to-deploy.tar
+.git.backup-*
