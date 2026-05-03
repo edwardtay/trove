@@ -17,6 +17,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Constrain V8 heap during build so memory-pressured hosts don't OOM.
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 # Hardhat is a devDep; next build only touches Next code.
 RUN npm run build
 
