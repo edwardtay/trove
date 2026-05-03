@@ -22,7 +22,7 @@ import {
   ExternalLink,
   Zap,
 } from "lucide-react";
-import { useSendTransaction, usePrivy } from "@privy-io/react-auth";
+import { useSendTransaction, usePrivy, useConnectWallet } from "@privy-io/react-auth";
 import { usePrivyWalletAddress } from "./usePrivyWalletAddress";
 
 type UnclaimedReward = {
@@ -60,17 +60,16 @@ type RewardsResponse = {
 export default function UnclaimedRewards({ address }: { address: string }) {
   const connected = usePrivyWalletAddress();
   const { sendTransaction } = useSendTransaction();
-  const { login, logout, authenticated } = usePrivy();
+  const { login, authenticated } = usePrivy();
+  const { connectWallet } = useConnectWallet();
 
-  async function reconnectAs() {
-    // Force disconnect of current Privy session, then prompt reconnect.
-    // Lets user re-pick a wallet that matches the looked-up address.
-    try {
-      await logout();
-    } catch {
-      /* ignore */
-    }
-    setTimeout(() => login(), 200);
+  function reconnectAs() {
+    // Open the wallet picker so user can connect MetaMask (or any external
+    // wallet) WITHOUT logging out of their current Privy session. Privy's
+    // user object will then have the new wallet in linkedAccounts, and our
+    // usePrivyWalletAddress hook (which prefers external wallets) returns
+    // the new address. No logout/login loop.
+    connectWallet();
   }
 
   const [data, setData] = useState<RewardsResponse | null>(null);
