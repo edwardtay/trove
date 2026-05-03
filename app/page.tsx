@@ -84,12 +84,14 @@ function fmtTvl(usd: number) {
   return `$${usd.toLocaleString()}`;
 }
 
+// Fixed UTC format — identical on server and client. Avoids React hydration
+// mismatch (#418) that toLocaleTimeString causes when the server timezone
+// (UTC on Hetzner) differs from the client's locale.
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
+  const d = new Date(iso);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hh}:${mm} UTC`;
 }
 
 export default async function Home() {
