@@ -31,6 +31,18 @@ import {
   type DecisionLog,
   type DecisionEntry,
 } from "../../../../src/og-storage";
+import { StableRotatorINft, type DecisionKind } from "../../../../src/og-inft";
+
+const INFT_ADDRESS =
+  process.env.NEXT_PUBLIC_INFT_ADDRESS ??
+  "0x390c17AC063F7E64c93ccC1E3a9381b14D68fB64";
+const INFT_TOKEN_ID = BigInt(process.env.NEXT_PUBLIC_INFT_TOKEN_ID ?? "0");
+
+function verdictToKind(verdict: "hold" | "move" | "harvest"): DecisionKind {
+  if (verdict === "move") return 1;
+  if (verdict === "harvest") return 2;
+  return 0;
+}
 
 // Write to /tmp inside the container — /app is owned by root and not writable
 // by the `nextjs` user that the production image runs as. /tmp is always
@@ -131,11 +143,34 @@ export async function POST(req: Request) {
     // non-fatal — the upload succeeded, local cache write failed
   }
 
+  // Best-effort on-chain commits to grow iNFT counters and sync memory hash.
+  // Non-blocking: if either tx fails (RPC blip, gas, etc.), the 0G Storage
+  // upload is still durable and the API returns success. Each commit is a
+  // small testnet tx (~0.0001 OG); cron tick rate (~15 min) keeps cost low.
+  let inftCommit: { updateMemoryTx?: string | null; recordDecisionTx?: string | null; err?: string } = {};
+  try {
+    const inft = new StableRotatorINft(INFT_ADDRESS);
+    if (inft.isConfigured) {
+      const memHash = await inft.updateMemory(INFT_TOKEN_ID, result.rootHash);
+      const decHash = await inft.recordDecision(
+        INFT_TOKEN_ID,
+        verdictToKind(body.verdict),
+      );
+      inftCommit = {
+        updateMemoryTx: memHash,
+        recordDecisionTx: decHash,
+      };
+    }
+  } catch (err) {
+    inftCommit.err = err instanceof Error ? err.message : String(err);
+  }
+
   return NextResponse.json({
     memoryHash: result.rootHash,
     storageTx: result.txHash,
     uploadedAt: result.uploadedAt,
     entryCount: log.entries.length,
+    inftCommit,
     storageExplorer: `https://chainscan-galileo.0g.ai/tx/${result.txHash}`,
   });
 }
