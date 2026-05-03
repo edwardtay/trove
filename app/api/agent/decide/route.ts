@@ -25,6 +25,8 @@ import { ethers } from "ethers";
 import { fetchPools, filterCandidates, rankByOrganicApy } from "../../../../src/llama";
 import { DEFAULT_POLICY, shouldRebalance } from "../../../../src/policy";
 import { isValidAddress, readAllPositions } from "../../../../src/onchain";
+import { OGDataAvailability, type DecisionInputs } from "../../../../src/og-da";
+import { StableRotatorCompute, type AnalyzeOutput } from "../../../../src/og-compute";
 
 // USDC on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -241,17 +243,50 @@ export async function POST(req: Request) {
     .sort((a, b) => b.balanceUsd - a.balanceUsd);
   const current = tracked[0];
 
+  // --- 0G DA: publish the inputs that drove this decision ---
+  // Anyone with the daBlob can refetch and re-run the deterministic policy
+  // to verify the agent's verdict is reproducible.
+  const daInputs: DecisionInputs = {
+    schema: "stable-rotator/decision-inputs/1",
+    cycleAt,
+    address,
+    policy: {
+      minApyDelta: DEFAULT_POLICY.minApyDelta,
+      minHoldingDays: DEFAULT_POLICY.minHoldingDays,
+      safetyMargin: DEFAULT_POLICY.safetyMargin,
+      gasCostUsd: DEFAULT_POLICY.gasCostUsd,
+      apyFloor: DEFAULT_POLICY.apyFloor,
+      tvlFloorUsd: DEFAULT_POLICY.tvlFloorUsd,
+    },
+    poolsConsidered: candidates.slice(0, 25).map((c) => ({
+      project: c.project,
+      pool: c.pool,
+      apyBase: c.apyBase,
+      apyReward: c.apyReward,
+      tvlUsd: c.tvlUsd,
+    })),
+    positions: positions
+      .filter((p) => p.balanceUsd > 0)
+      .map((p) => ({ project: p.project, balanceUsd: p.balanceUsd, source: p.source })),
+  };
+
+  const da = new OGDataAvailability();
+  const daPromise = da.publish(`decision-inputs:${address}:${cycleAt}`, daInputs);
+
   if (!best) {
+    const daBlob = await daPromise;
     return NextResponse.json({
       address,
       cycleAt,
       verdict: "hold",
       reason: "no candidates clear the filter",
       paidBy: verified.from,
+      ogDA: daBlob,
     });
   }
 
   if (!current) {
+    const daBlob = await daPromise;
     return NextResponse.json({
       address,
       cycleAt,
@@ -259,12 +294,18 @@ export async function POST(req: Request) {
       reason: `no position; would supply to ${best.project} at ${(best.apyBase ?? 0).toFixed(2)}% organic`,
       candidate: { project: best.project, apyBase: best.apyBase, apyReward: best.apyReward },
       paidBy: verified.from,
+      ogDA: daBlob,
     });
   }
 
   const currentPool = candidates.find((c) => c.project === current.project);
   const currentApy = currentPool?.apyBase ?? best.apyBase ?? 0;
-  const decision = shouldRebalance(
+
+  // --- Run policy + 0G Compute LLM in parallel with DA publication ---
+  // Policy is authoritative (deterministic, tested, fast).
+  // Compute provides a verifiable second opinion + human-readable reasoning.
+  // If Compute fails or is unfunded, the policy result stands alone.
+  const policyDecision = shouldRebalance(
     {
       project: current.project,
       pool: currentPool?.pool ?? "",
@@ -277,11 +318,35 @@ export async function POST(req: Request) {
     24,
   );
 
+  const compute = new StableRotatorCompute();
+  const computePromise: Promise<AnalyzeOutput | null> = compute.isConfigured
+    ? compute
+        .analyzeRebalance({
+          currentProject: current.project,
+          currentApy,
+          bestProject: best.project,
+          bestApy: best.apyBase ?? 0,
+          bestApyReward: best.apyReward ?? 0,
+          principalUsd: current.balanceUsd,
+          policy: {
+            minApyDelta: DEFAULT_POLICY.minApyDelta,
+            safetyMargin: DEFAULT_POLICY.safetyMargin,
+            minHoldingDays: DEFAULT_POLICY.minHoldingDays,
+          },
+        })
+        .catch((err) => {
+          console.warn(`[og-compute] analyzeRebalance failed: ${err}`);
+          return null;
+        })
+    : Promise.resolve(null);
+
+  const [daBlob, computeAnalysis] = await Promise.all([daPromise, computePromise]);
+
   return NextResponse.json({
     address,
     cycleAt,
-    verdict: decision.move ? "move" : "hold",
-    reason: decision.reason,
+    verdict: policyDecision.move ? "move" : "hold",
+    reason: policyDecision.reason,
     current: {
       project: current.project,
       balanceUsd: current.balanceUsd,
@@ -293,5 +358,21 @@ export async function POST(req: Request) {
       apyReward: best.apyReward,
     },
     paidBy: verified.from,
+    // Verifiable trace: anyone can re-derive `verdict` from `ogDA.blobId`
+    // by fetching the inputs blob and running the open-source policy.
+    ogDA: daBlob,
+    ogCompute: computeAnalysis
+      ? {
+          recommendation: computeAnalysis.recommendation,
+          reasoning: computeAnalysis.reasoning,
+          model: computeAnalysis.modelUsed,
+          provider: computeAnalysis.providerAddress,
+          inferenceMs: computeAnalysis.durationMs,
+          // True when LLM independently agrees with the deterministic policy.
+          agreesWithPolicy:
+            computeAnalysis.recommendation ===
+            (policyDecision.move ? "move" : "hold"),
+        }
+      : null,
   });
 }

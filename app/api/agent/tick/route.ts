@@ -24,6 +24,8 @@ import { NextResponse } from "next/server";
 import { fetchPools, filterCandidates, rankByOrganicApy } from "../../../../src/llama";
 import { DEFAULT_POLICY, shouldRebalance } from "../../../../src/policy";
 import { readAllPositions, isValidAddress } from "../../../../src/onchain";
+import { OGDataAvailability, type DecisionInputs } from "../../../../src/og-da";
+import { StableRotatorCompute, type AnalyzeOutput } from "../../../../src/og-compute";
 
 export const revalidate = 0;
 
@@ -86,6 +88,36 @@ export async function GET(req: Request) {
   const currentPool = candidates.find((c) => c.project === currentOnchain.project);
   const currentApy = currentPool?.apyBase ?? best.apyBase ?? 0;
 
+  // 4a. Publish decision inputs to 0G DA so the cycle is independently
+  // replayable. Run in parallel with the policy + Compute analysis below.
+  const da = new OGDataAvailability();
+  const daPromise = da.publish(
+    `tick-inputs:${address}:${cycleAt}`,
+    {
+      schema: "stable-rotator/decision-inputs/1",
+      cycleAt,
+      address,
+      policy: {
+        minApyDelta: DEFAULT_POLICY.minApyDelta,
+        minHoldingDays: DEFAULT_POLICY.minHoldingDays,
+        safetyMargin: DEFAULT_POLICY.safetyMargin,
+        gasCostUsd: DEFAULT_POLICY.gasCostUsd,
+        apyFloor: DEFAULT_POLICY.apyFloor,
+        tvlFloorUsd: DEFAULT_POLICY.tvlFloorUsd,
+      },
+      poolsConsidered: candidates.slice(0, 25).map((c) => ({
+        project: c.project,
+        pool: c.pool,
+        apyBase: c.apyBase,
+        apyReward: c.apyReward,
+        tvlUsd: c.tvlUsd,
+      })),
+      positions: positions
+        .filter((p) => p.balanceUsd > 0)
+        .map((p) => ({ project: p.project, balanceUsd: p.balanceUsd, source: p.source })),
+    } satisfies DecisionInputs,
+  );
+
   const decision = shouldRebalance(
     {
       project: currentOnchain.project,
@@ -98,6 +130,31 @@ export async function GET(req: Request) {
     DEFAULT_POLICY,
     24, // assume cooldown clear for endpoint demo
   );
+
+  // 4b. Get a verifiable LLM second opinion via 0G Compute (best-effort).
+  const compute = new StableRotatorCompute();
+  const computePromise: Promise<AnalyzeOutput | null> = compute.isConfigured
+    ? compute
+        .analyzeRebalance({
+          currentProject: currentOnchain.project,
+          currentApy,
+          bestProject: best.project,
+          bestApy: best.apyBase ?? 0,
+          bestApyReward: best.apyReward ?? 0,
+          principalUsd: currentOnchain.balanceUsd,
+          policy: {
+            minApyDelta: DEFAULT_POLICY.minApyDelta,
+            safetyMargin: DEFAULT_POLICY.safetyMargin,
+            minHoldingDays: DEFAULT_POLICY.minHoldingDays,
+          },
+        })
+        .catch((err) => {
+          console.warn(`[og-compute] tick analyzeRebalance failed: ${err}`);
+          return null;
+        })
+    : Promise.resolve(null);
+
+  const [daBlob, computeAnalysis] = await Promise.all([daPromise, computePromise]);
 
   return NextResponse.json({
     address,
@@ -139,5 +196,18 @@ export async function GET(req: Request) {
       // to 0G Storage; this slot is what KeeperHub fills in its final node.
       memoryHashPlaceholder: "<from-0g-storage-upload>",
     },
+    ogDA: daBlob,
+    ogCompute: computeAnalysis
+      ? {
+          recommendation: computeAnalysis.recommendation,
+          reasoning: computeAnalysis.reasoning,
+          model: computeAnalysis.modelUsed,
+          provider: computeAnalysis.providerAddress,
+          inferenceMs: computeAnalysis.durationMs,
+          agreesWithPolicy:
+            computeAnalysis.recommendation ===
+            (decision.move ? "move" : "hold"),
+        }
+      : null,
   });
 }

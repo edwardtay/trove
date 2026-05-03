@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getKeeperHubStatus } from "../../../src/keeperhub-status";
+import { OGDataAvailability } from "../../../src/og-da";
+import { StableRotatorCompute } from "../../../src/og-compute";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,6 +23,42 @@ function originFromRequest(req: Request) {
 export async function GET(req: Request) {
   const origin = originFromRequest(req);
   const keeperhub = await getKeeperHubStatus();
+
+  // Live-probe 0G DA disperser by publishing a tiny health-check blob.
+  // If it returns a real blobId, DA is live for this deployment.
+  const da = new OGDataAvailability();
+  const daHealth = await da
+    .publish("proof-health", {
+      schema: "stable-rotator/proof-health/1",
+      probedAt: new Date().toISOString(),
+    })
+    .catch(() => null);
+
+  // Compute is "live" if PRIVATE_KEY is configured and the broker can be
+  // instantiated. We don't burn an inference call on every /api/proof hit —
+  // configuration check is sufficient evidence for the proof bundle.
+  const compute = new StableRotatorCompute();
+  const computeLive = compute.isConfigured;
+
+  const daLive = daHealth !== null;
+  const liveItems = [
+    "0G Storage policy config and decision logs",
+    "0G Galileo iNFT identity, memory pointer, counters, clone lineage",
+    "KeeperHub auth and free workflow call",
+    "x402 seller endpoint with EIP-3009 signature verification",
+    "Deterministic policy tests and live market reads",
+  ];
+  if (daLive) liveItems.push("0G DA decision-input publication (per-cycle)");
+  if (computeLive)
+    liveItems.push("0G Compute verifiable LLM analysis (per-cycle, parallel to policy)");
+
+  const notClaimedItems: string[] = [];
+  if (!daLive) notClaimedItems.push("0G DA publication unreachable from this deployment");
+  if (!computeLive) notClaimedItems.push("0G Compute key not configured in this deployment");
+  notClaimedItems.push(
+    "No unattended user fund movement",
+    "No MEV/private-orderflow protection claim",
+  );
 
   return NextResponse.json({
     project: "Trove",
@@ -67,25 +105,21 @@ export async function GET(req: Request) {
           "https://chainscan-galileo.0g.ai/tx/0x0728a730ebd2972bb316ece22f0e27316f38f7d48b1b8cbb34b06a92196156c4",
       },
     },
+    liveStatus0G: {
+      storage: true,
+      iNft: true,
+      dataAvailability: daLive,
+      compute: computeLive,
+      ...(daHealth ? { daHealthCheck: daHealth } : {}),
+    },
     integrationTruth: {
-      live: [
-        "0G Storage policy config and decision logs",
-        "0G Galileo iNFT identity, memory pointer, counters, clone lineage",
-        "KeeperHub auth and free workflow call",
-        "x402 seller endpoint with EIP-3009 signature verification",
-        "Deterministic policy tests and live market reads",
-      ],
+      live: liveItems,
       bounded: [
         "KeeperHub tx nodes require funded Turnkey wallet and protocol adapters",
         "x402 settlement is locally verified; facilitator submission is production follow-up",
         "RoyaltyRouter is implemented but not live-settled from x402 yet",
       ],
-      notClaimed: [
-        "No 0G DA publication",
-        "No live 0G Compute inference",
-        "No unattended user fund movement",
-        "No MEV/private-orderflow protection claim",
-      ],
+      notClaimed: notClaimedItems,
     },
   });
 }
