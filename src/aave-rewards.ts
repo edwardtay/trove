@@ -61,6 +61,36 @@ const REWARDS_CONTROLLER_ABI = [
       { name: "claimedAmounts", type: "uint256[]" },
     ],
   },
+  {
+    /**
+     * Authorized-claimer flow: lets a pre-approved claimer (e.g. a
+     * KeeperHub-managed Turnkey wallet) claim rewards on behalf of the
+     * user. The user must first call `setClaimer(user, claimer)`.
+     */
+    type: "function",
+    name: "claimAllRewardsOnBehalf",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "assets", type: "address[]" },
+      { name: "user", type: "address" },
+      { name: "to", type: "address" },
+    ],
+    outputs: [
+      { name: "rewardsList", type: "address[]" },
+      { name: "claimedAmounts", type: "uint256[]" },
+    ],
+  },
+  {
+    /** One-time user authorization for a delegated claimer. */
+    type: "function",
+    name: "setClaimer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "user", type: "address" },
+      { name: "claimer", type: "address" },
+    ],
+    outputs: [],
+  },
 ] as const;
 
 const ERC20_METADATA_ABI = [
@@ -96,13 +126,28 @@ export type RewardsSummary = {
   rewards: UnclaimedReward[];
   /** Total dollar value where price is known (best-effort, may be 0). */
   totalUsdEstimate: number | null;
-  /** Pre-built transaction the wallet can sign as-is to claim everything. */
+  /**
+   * Pre-built transactions for two execution modes:
+   *  - `manual` — user signs themselves via their own wallet
+   *  - `delegated` — a pre-authorized claimer (KeeperHub Turnkey wallet)
+   *    signs and submits, requires a one-time `setClaimer` from the user
+   */
   claimTx: {
-    to: Address;
-    data: Hex;
-    value: "0x0";
-    description: string;
+    manual: TxPayload;
+    delegated: TxPayload;
   } | null;
+  /**
+   * One-time tx the user signs to authorize a claimer. Only included when
+   * a claimer address is requested in the API call.
+   */
+  setClaimerTx: TxPayload | null;
+};
+
+type TxPayload = {
+  to: Address;
+  data: Hex;
+  value: "0x0";
+  description: string;
 };
 
 /**
@@ -115,6 +160,7 @@ export type RewardsSummary = {
 export async function getUnclaimedAaveRewards(
   user: Address,
   aTokens: Address[],
+  claimerToAuthorize?: Address,
 ): Promise<RewardsSummary> {
   const summary: RewardsSummary = {
     user,
@@ -122,7 +168,22 @@ export async function getUnclaimedAaveRewards(
     rewards: [],
     totalUsdEstimate: null,
     claimTx: null,
+    setClaimerTx: null,
   };
+
+  // If caller wants the setClaimer tx (one-time auth flow), build it.
+  if (claimerToAuthorize) {
+    summary.setClaimerTx = {
+      to: AAVE_REWARDS_CONTROLLER,
+      data: encodeFunctionData({
+        abi: REWARDS_CONTROLLER_ABI,
+        functionName: "setClaimer",
+        args: [user, claimerToAuthorize],
+      }),
+      value: "0x0",
+      description: `One-time authorization: allow ${claimerToAuthorize.slice(0, 6)}…${claimerToAuthorize.slice(-4)} (KeeperHub) to claim Aave rewards on behalf of ${user.slice(0, 6)}…${user.slice(-4)}`,
+    };
+  }
 
   if (aTokens.length === 0) return summary;
 
@@ -177,19 +238,34 @@ export async function getUnclaimedAaveRewards(
     });
   }
 
-  // If anything is claimable, build the claim tx. We claim to the user (the
-  // recipient address); keepers calling this would substitute the executor.
+  // If anything is claimable, build BOTH execution paths:
+  //  - manual: user calls claimAllRewards from their own wallet
+  //  - delegated: KeeperHub's Turnkey wallet calls claimAllRewardsOnBehalf
   if (summary.rewards.length > 0) {
-    const data = encodeFunctionData({
+    const manualData = encodeFunctionData({
       abi: REWARDS_CONTROLLER_ABI,
       functionName: "claimAllRewards",
       args: [aTokens, user],
     });
+    const delegatedData = encodeFunctionData({
+      abi: REWARDS_CONTROLLER_ABI,
+      functionName: "claimAllRewardsOnBehalf",
+      args: [aTokens, user, user], // claim FOR user, send TO user
+    });
+    const desc = `Claim ${summary.rewards.length} unclaimed reward${summary.rewards.length === 1 ? "" : "s"} from Aave V3`;
     summary.claimTx = {
-      to: AAVE_REWARDS_CONTROLLER,
-      data,
-      value: "0x0",
-      description: `Claim ${summary.rewards.length} unclaimed reward${summary.rewards.length === 1 ? "" : "s"} from Aave V3 to ${user.slice(0, 6)}…${user.slice(-4)}`,
+      manual: {
+        to: AAVE_REWARDS_CONTROLLER,
+        data: manualData,
+        value: "0x0",
+        description: `${desc} (user signs)`,
+      },
+      delegated: {
+        to: AAVE_REWARDS_CONTROLLER,
+        data: delegatedData,
+        value: "0x0",
+        description: `${desc} (KeeperHub claims on behalf of user)`,
+      },
     };
   }
 

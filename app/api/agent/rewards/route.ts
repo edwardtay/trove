@@ -34,7 +34,19 @@ export async function GET(req: Request) {
     .filter((p) => p.project === "aave-v3" && p.balanceUsd > 0)
     .map((p) => p.receiptAddress);
 
-  const summary = await getUnclaimedAaveRewards(address as Address, aTokens);
+  // Optional ?claimer=0x… returns a one-time setClaimer tx so the user can
+  // authorize KeeperHub (or any delegated executor) to claim on their behalf.
+  const claimerParam = url.searchParams.get("claimer");
+  const claimer =
+    claimerParam && isValidAddress(claimerParam)
+      ? (claimerParam as Address)
+      : undefined;
+
+  const summary = await getUnclaimedAaveRewards(
+    address as Address,
+    aTokens,
+    claimer,
+  );
 
   return NextResponse.json({
     address,
@@ -43,5 +55,6 @@ export async function GET(req: Request) {
     unclaimed: summary.rewards,
     totalUsdEstimate: summary.totalUsdEstimate,
     claimTx: summary.claimTx,
+    setClaimerTx: summary.setClaimerTx,
   });
 }

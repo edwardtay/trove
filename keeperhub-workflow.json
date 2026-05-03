@@ -1,7 +1,7 @@
 {
-  "name": "stable-rotator-cycle",
-  "description": "Every 15 min: query agent, log the verdict, and commit memoryHash to iNFT. Rebalance tx nodes are adapter placeholders until protocol calldata is wired.",
-  "tags": ["stable-rotator", "0g", "base-mainnet"],
+  "name": "trove-cycle",
+  "description": "Every 15 min: query agent verdict + Aave rewards. If movable: execute rebalance. If rewards >= threshold: claim them on user's behalf via Aave's setClaimer-authorized path. Log everything to 0G Storage and commit memoryHash to iNFT.",
+  "tags": ["trove", "0g", "aave-v3", "base-mainnet"],
   "trigger": {
     "type": "cron",
     "schedule": "*/15 * * * *",
@@ -22,7 +22,19 @@
       }
     },
     {
-      "id": "branch",
+      "id": "rewards_check",
+      "type": "http",
+      "config": {
+        "method": "GET",
+        "url": "${AGENT_BASE_URL}/api/agent/rewards",
+        "query": {
+          "address": "${USER_ADDRESS}"
+        },
+        "timeout_ms": 8000
+      }
+    },
+    {
+      "id": "branch_verdict",
       "type": "switch",
       "depends_on": ["tick"],
       "config": {
@@ -35,9 +47,21 @@
       }
     },
     {
+      "id": "branch_rewards",
+      "type": "switch",
+      "depends_on": ["rewards_check"],
+      "config": {
+        "expression": "${rewards_check.body.unclaimed.length > 0}",
+        "cases": {
+          "true": "execute_claim_rewards",
+          "false": "skip_claim"
+        }
+      }
+    },
+    {
       "id": "execute_rebalance",
       "type": "tx",
-      "depends_on": ["branch"],
+      "depends_on": ["branch_verdict"],
       "config": {
         "chain_id": 8453,
         "to": "${tick.body.txPayload.to}",
@@ -50,7 +74,7 @@
     {
       "id": "execute_harvest",
       "type": "tx",
-      "depends_on": ["branch"],
+      "depends_on": ["branch_verdict"],
       "config": {
         "chain_id": 8453,
         "to": "${tick.body.txPayload.to}",
@@ -60,14 +84,38 @@
       }
     },
     {
+      "id": "execute_claim_rewards",
+      "type": "tx",
+      "depends_on": ["branch_rewards"],
+      "config": {
+        "chain_id": 8453,
+        "to": "${rewards_check.body.claimTx.delegated.to}",
+        "data": "${rewards_check.body.claimTx.delegated.data}",
+        "value": "0",
+        "gas_strategy": "network_average",
+        "_note": "Uses claimAllRewardsOnBehalf — requires user to have called setClaimer(user, KEEPERHUB_TURNKEY_WALLET) once. Rewards land directly in user's wallet."
+      }
+    },
+    {
+      "id": "skip_claim",
+      "type": "noop",
+      "depends_on": ["branch_rewards"]
+    },
+    {
       "id": "log_and_exit",
       "type": "noop",
-      "depends_on": ["branch"]
+      "depends_on": ["branch_verdict"]
     },
     {
       "id": "upload_memory",
       "type": "http",
-      "depends_on": ["execute_rebalance", "execute_harvest", "log_and_exit"],
+      "depends_on": [
+        "execute_rebalance",
+        "execute_harvest",
+        "log_and_exit",
+        "execute_claim_rewards",
+        "skip_claim"
+      ],
       "config": {
         "method": "POST",
         "url": "${AGENT_BASE_URL}/api/agent/log",
@@ -76,7 +124,9 @@
           "verdict": "${tick.body.verdict}",
           "reason": "${tick.body.reason}",
           "rebalance_tx": "${execute_rebalance.tx_hash}",
-          "harvest_tx": "${execute_harvest.tx_hash}"
+          "harvest_tx": "${execute_harvest.tx_hash}",
+          "claim_tx": "${execute_claim_rewards.tx_hash}",
+          "claimed_rewards": "${rewards_check.body.unclaimed}"
         }
       }
     },
@@ -98,18 +148,17 @@
     }
   ],
   "env_vars": {
-    "AGENT_BASE_URL": "https://stable-rotator.example.com",
+    "AGENT_BASE_URL": "https://trove.web3wagmi.com",
     "USER_ADDRESS": "0x...",
-    "PRINCIPAL_USD": "10000"
+    "PRINCIPAL_USD": "10000",
+    "KEEPERHUB_TURNKEY_WALLET": "0x... (the address users authorize via setClaimer)"
   },
   "_notes": [
-    "Replace AGENT_BASE_URL with your deployed instance.",
-    "Replace USER_ADDRESS with the user's wallet (one workflow per user, or parameterize).",
-    "The /api/agent/log endpoint uploads the decision log to 0G Storage and returns the new memoryHash.",
-    "KeeperHub tx nodes are signed by the organization's Turnkey wallet configured in KeeperHub.",
-    "Fund the KeeperHub Turnkey wallet with the target network gas token before enabling execute_rebalance, execute_harvest, or commit_inft tx nodes.",
-    "KeeperHub's Turnkey docs currently list Ethereum Mainnet and Sepolia. Treat Base and Galileo tx nodes here as the target workflow shape until KeeperHub confirms support for those networks.",
-    "execute_rebalance and execute_harvest require a production adapter that fills tick.body.txPayload.to/data before live fund movement.",
-    "gas_strategy: network_average is what gives KeeperHub its ~30% gas savings vs naive."
+    "Two parallel checks per cycle: tick (rebalance/harvest decision) and rewards_check (claimable Aave incentives).",
+    "rewards_check → branch_rewards → execute_claim_rewards uses Aave's claimAllRewardsOnBehalf — KeeperHub's Turnkey wallet must be pre-authorized by the user via Aave RewardsController.setClaimer(user, KEEPERHUB_TURNKEY_WALLET).",
+    "Claimed rewards always land in the user's wallet, not KeeperHub's. The setClaimer permission only allows claiming, not redirecting.",
+    "All branches converge on upload_memory → commit_inft so every cycle (even pure HOLD) updates the iNFT memoryHash.",
+    "Fund the KeeperHub Turnkey wallet with Base ETH for gas before enabling tx nodes.",
+    "execute_rebalance and execute_harvest still require a protocol-specific calldata adapter to be wired; execute_claim_rewards uses Aave's standard ABI directly and works today."
   ]
 }
