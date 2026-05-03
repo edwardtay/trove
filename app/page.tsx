@@ -20,6 +20,7 @@ import Sparkline from "./Sparkline";
 import ConnectWallet from "./ConnectWallet";
 import CycleStatus from "./CycleStatus";
 import DashboardHero from "./DashboardHero";
+import INftIdentityCard from "./INftIdentityCard";
 import DecisionFeed from "./DecisionFeed";
 import HealthBadge from "./HealthBadge";
 import HeroConnectButton from "./HeroConnectButton";
@@ -301,6 +302,13 @@ export default async function Home() {
 
       {/* Ambient liveness bar — shows last cycle + countdown to next. */}
       <CycleStatus />
+
+      {/* Live agent identity — reads on-chain state from the iNFT contract
+          on 0G Galileo. Anchors the "this is a real on-chain agent" claim
+          for any visitor. */}
+      <div className="mt-8">
+        <INftIdentityCard />
+      </div>
 
       <div id="positions" className="min-w-0">
         <RealPositions
