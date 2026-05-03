@@ -497,16 +497,11 @@ export default async function Home() {
       </nav>
 
       <footer className="mt-16 flex flex-col gap-3 border-t border-hairline pt-4 text-[11px] leading-relaxed text-ink-faint sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="tabular-nums">
-            We watch ·{" "}
-            {[...DEFAULT_POLICY.allowlist]
-              .map((s) => protocolName(s))
-              .join(" · ")}
-          </div>
-          <div className="mt-1 font-mono tabular-nums">
-            Minimum protocol size · {fmtTvl(DEFAULT_POLICY.tvlFloorUsd)} TVL
-          </div>
+        <div className="tabular-nums">
+          We watch ·{" "}
+          {[...DEFAULT_POLICY.allowlist]
+            .map((s) => protocolName(s))
+            .join(" · ")}
         </div>
         <HealthBadge />
       </footer>
