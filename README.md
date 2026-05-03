@@ -6,21 +6,6 @@
 
 ---
 
-## Submission quick facts
-
-| Item | Status |
-|---|---|
-| Demo app | Live at https://trove.web3wagmi.com; local-ready via `npm run dev` |
-| Primary judge path | `/` for the live dashboard, `/notes` for proof, `/agents` for iNFT variants |
-| Submission brief | [`SUBMISSION.md`](./SUBMISSION.md) plus machine-readable `/api/proof` |
-| Main tracks | 0G OpenAgents, KeeperHub |
-| Verifiable artifacts | 0G Storage roots, Galileo iNFT contract, mint/update/decision txs |
-| Core proof | Deterministic policy in `src/policy.ts`, 25 unit tests, 90-day DeFiLlama benchmark |
-| 0G integration truth | Storage + Chain/iNFT are live; Compute is scaffolded but blocked upstream; DA is not used |
-| Monetization | Two-sided x402: buyer client plus paid seller endpoint at `/api/agent/decide` |
-| Remaining submit fields | Public GitHub URL, 90-second demo video, team/contact details in ETHGlobal |
-
----
 
 ## What's verifiable on-chain right now
 
@@ -189,36 +174,6 @@ This separation is deliberate: the agent can publish/verifiably sell decisions w
 
 ---
 
-## Hackathon track fit
-
-### 0G OpenAgents track
-
-> "Long-running goal-driven agents · novel uses of iNFTs (ERC-7857) for ownership, composability, and monetization on 0G."
-
-| Pillar | Implementation |
-|---|---|
-| **Long-running autonomous agent** | Decision loop + harvester cycle; runs on a schedule |
-| **Persistent memory via 0G Storage** | `policyConfig` + append-only `decisionLog` JSON blobs uploaded to Galileo indexer; rootHashes committed to iNFT |
-| **iNFT identity (ERC-7857-inspired)** | `StableRotatorAgent.sol` deployed at `0x390c17AC…fB64`; mintable, cloneable with lineage tracking |
-| **Composability** | `cloneAgent(sourceTokenId)` forks any existing strategy; fresh memory per clone |
-| **Monetization** | Two-sided x402 endpoint sells policy verdicts; `RoyaltyRouter.sol` implements 80/15/5 lineage splits, but on-chain settlement/routing is a production follow-up |
-| **Verifiable cycle DAG** | Each agent cycle has inputs (policy + market state), verdict, 0G Storage memory root, and iNFT counter update; `/notes#status` shows the audit trail |
-| **0G KV status probe** | Public hackathon KV node is queried read-only; write path remains stubbed pending signed tx/API clarification |
-| **Verifiable reasoning** | ✅ via deterministic pure-function policy. `shouldRebalance(state, policy) → verdict`; inputs are persisted on 0G Storage, function is in `src/policy.ts`, and tests cover every gate. **Not claiming live 0G Compute inference.** |
-
-### KeeperHub track ($4,500 + $500 builder bounty)
-
-> "Use KeeperHub's execution layer to solve a real problem · build payment integrations (x402, MPP)."
-
-| Pillar | Implementation |
-|---|---|
-| **Use KeeperHub** | Free workflow `helloworld` executed live (real `executionId`); `/api/agent/tick` + `/api/agent/log` endpoints are the KeeperHub-facing automation boundary; `keeperhub-workflow.json` describes the DAG |
-| **x402 buyer side** | `src/keeperhub.ts` — full canonical EIP-712 / EIP-3009 `TransferWithAuthorization` signer per [coinbase/x402 spec](https://github.com/coinbase/x402/blob/main/specs/schemes/exact/scheme_exact_evm.md). Probes 402 → signs → retries with X-PAYMENT |
-| **x402 seller side** ⭐ | `/api/agent/decide` — paywalled endpoint that returns 402 with structured offer, verifies incoming X-PAYMENT signatures via `ethers.verifyTypedData`, returns the agent's decision on valid sigs. **Two-sided x402 is the rare move.** |
-| **Turnkey wallet boundary** | KeeperHub tx workflow nodes sign through the organization's Turnkey wallet configured in KeeperHub. Read-only/free calls are live without wallet funding; unattended tx nodes require funding that Turnkey wallet and confirming target-chain support. |
-| **Builder Feedback findings** | (1) SDK 2.0.0 default Compute contract addresses (`0x0c0D…53e7`, `0x46e8…6c77`) not deployed on Galileo — `eth_getCode` returns `0x`. (2) `x402-fetch@1.2.0` validates against an older v1 schema; rejects KeeperHub's CAIP-2 `eip155:8453` network format. (3) Public KV node's `kv_getValue` method exists but third param shape undocumented. |
-
----
 
 ## Architecture
 
@@ -354,19 +309,6 @@ KeeperHub Turnkey note: the Turnkey wallet is configured and funded inside the K
 
 ---
 
-## Submission checklist
-
-- [x] Working deployed demo at https://trove.web3wagmi.com
-- [x] Public GitHub repo with README
-- [x] Write-up explaining approach + integration
-- [x] Real on-chain artifacts (links above)
-- [x] x402v2 buyer + seller implementation
-- [x] 0G Storage + iNFT live on Galileo
-- [ ] Public GitHub URL submitted to ETHGlobal
-- [ ] 90-second demo video
-- [ ] Team/contact details in ETHGlobal form
-
----
 
 ## License
 
