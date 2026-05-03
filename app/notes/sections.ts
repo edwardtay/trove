@@ -12,8 +12,6 @@ export const SECTIONS: Section[] = [
   { id: "realism", title: "Real-world params" },
   { id: "leaderboard", title: "iNFT leaderboard (mock)" },
   { id: "future-tools", title: "0G + Keepers" },
-  { id: "track-fit", title: "Hackathon track fit" },
   { id: "prior-art", title: "What already exists" },
-  { id: "submission", title: "Submission script" },
   { id: "status", title: "Status" },
 ];
