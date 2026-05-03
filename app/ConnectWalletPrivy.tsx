@@ -2,10 +2,7 @@
 
 import { usePrivy } from "@privy-io/react-auth";
 import { LogIn, LogOut, Wallet } from "lucide-react";
-
-function shortAddr(addr: string): string {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
+import { EnsName } from "./EnsName";
 
 export default function ConnectWalletPrivy() {
   const { ready, authenticated, user, login, logout } = usePrivy();
@@ -21,7 +18,7 @@ export default function ConnectWalletPrivy() {
 
   if (authenticated && user) {
     const wallet = user.wallet?.address ?? user.email?.address ?? "anon";
-    const display = wallet.startsWith("0x") ? shortAddr(wallet) : wallet;
+    const isEvm = wallet.startsWith("0x");
     return (
       <button
         onClick={() => logout()}
@@ -32,7 +29,11 @@ export default function ConnectWalletPrivy() {
           className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
           aria-hidden
         />
-        <span className="font-mono tabular-nums">{display}</span>
+        {isEvm ? (
+          <EnsName address={wallet} className="font-mono tabular-nums" />
+        ) : (
+          <span className="font-mono tabular-nums">{wallet}</span>
+        )}
         <LogOut
           className="h-3 w-3 text-emerald-700/60 opacity-0 transition-opacity group-hover:opacity-100"
           aria-hidden

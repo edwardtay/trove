@@ -27,6 +27,7 @@ import { DEFAULT_POLICY, shouldRebalance } from "../../../../src/policy";
 import { isValidAddress, readAllPositions } from "../../../../src/onchain";
 import { OGDataAvailability, type DecisionInputs } from "../../../../src/og-da";
 import { StableRotatorCompute, type AnalyzeOutput } from "../../../../src/og-compute";
+import { TROVE_AGENT_ENS } from "../../../../src/agent-ens";
 
 // USDC on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -74,6 +75,12 @@ const ACCEPT_OFFER = {
   asset: USDC_BASE,
   amount: PRICE_USDC_WEI,
   payTo: PAY_TO,
+  /**
+   * ENS name that resolves to `payTo`. Calling agents SHOULD resolve this
+   * via mainnet ENS and verify the result matches `payTo` before signing —
+   * defends against tampering of the offer in transit.
+   */
+  payToENS: TROVE_AGENT_ENS,
   maxTimeoutSeconds: 300,
   extra: {
     name: "USD Coin",
