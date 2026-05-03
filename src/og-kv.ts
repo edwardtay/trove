@@ -1,5 +1,5 @@
 /**
- * 0G KV Storage client — uses the public hackathon KV node at
+ * 0G KV Storage client — uses the public testnet KV node at
  * 178.238.236.119:6789, no auth, no rate limit.
  * https://trivo25.github.io/agentio/
  *
@@ -82,7 +82,7 @@ const KEY = toHex("agent:live");
  *   kv_getValue(streamId: hex32, key: hex, startVersion: u64, endVersion: u64)
  *     → { version: u64, data: hex, size: u64 }
  *
- * The public hackathon node is **read-only**. Writing requires signed
+ * The public testnet node is **read-only**. Writing requires signed
  * transactions to the 0G KV contract on Galileo — out of scope for this
  * RPC client.
  */

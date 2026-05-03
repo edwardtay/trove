@@ -27,7 +27,7 @@ const l1Client = createPublicClient({
 });
 
 /**
- * For the hackathon demo, we provide a mock profile for a specific name
+ * For demo purposes, we provide a mock profile for a specific name
  * since we can't easily set real text records on a mainnet ENS name without paying gas.
  */
 const MOCK_AGENT_NAME = "trove-agent.eth";

@@ -1039,10 +1039,10 @@ X-PAYMENT: <base64(signed authorization)>
               </li>
               <li>
                 <span className="text-amber-600">◐</span>{" "}
-                <strong>Good post-hackathon upgrade</strong>: add one small
-                public &ldquo;0G resources used&rdquo; appendix if this becomes
-                a longer-lived repo. For the hackathon submit, keep the detailed
-                audit private here and keep the public README focused.
+                <strong>Future upgrade</strong>: add one small public
+                &ldquo;0G resources used&rdquo; appendix as the project
+                matures. For now, the detailed audit lives here and the
+                public README stays focused.
               </li>
             </UL>
 

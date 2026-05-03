@@ -14,7 +14,7 @@
  * signature on the canonical message. Only the owner of the EOA can produce
  * that signature, so only the owner can decrypt.
  *
- * This is a hackathon-grade key-management scheme. Production would add
+ * This is a demo-grade key-management scheme. Production would add
  * ratchet-style key rotation, sealed-box wraps for shared access, etc.
  */
 

@@ -11,7 +11,7 @@
  * This makes the agent's policy decision a *paid service* on the x402 web.
  * Other agents (on KeeperHub, ElizaOS, LangChain, etc.) can call this and
  * pay 0.01 USDC per decision. Settlement on a real Coinbase facilitator
- * happens out-of-band; for the hackathon demo we verify the signature
+ * happens out-of-band; for this demo we verify the signature
  * locally and grant access on a valid sig (the actual on-chain settlement
  * would be a follow-on tx).
  *
@@ -34,7 +34,7 @@ const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PRICE_USDC_WEI = "10000";
 // Recipient: set ROYALTY_ROUTER_BASE once the Base router is deployed.
 // Until then, payTo is the agent runtime wallet and the split is only
-// described in the offer metadata. The hackathon endpoint verifies the
+// described in the offer metadata. This endpoint verifies the
 // x402 signature locally; on-chain USDC settlement is a production follow-up.
 const PAY_TO =
   process.env.ROYALTY_ROUTER_BASE ?? "0x15ECEE3445E3C8cf28D4D93fAB50181de728b86d";

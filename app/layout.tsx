@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: "Trove — earn the yield you're missing",
   description:
-    "USDC yield agent on Base. Auto-claims reward tokens (1–3% per year you'd otherwise miss). Two-sided x402. iNFT identity on 0G. Built for ETHGlobal OpenAgents.",
+    "USDC yield agent on Base. Auto-claims reward tokens (1–3% per year you'd otherwise miss). Two-sided x402. iNFT identity on 0G.",
   robots: { index: false, follow: false },
   openGraph: {
     title: "Trove · earn the yield you're missing",

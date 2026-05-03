@@ -173,7 +173,7 @@ export async function GET(req: Request) {
       poolId: best.pool,
     },
     // A live keeper would call a protocol-specific adapter here to produce
-    // executable calldata. For this hackathon endpoint, the decision is live
+    // executable calldata. For this demo endpoint, the decision is live
     // and the tx payload is intentionally marked as a template.
     txPayload: decision.move
       ? {
