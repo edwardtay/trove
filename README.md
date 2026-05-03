@@ -28,7 +28,7 @@ Real Galileo testnet artifacts. **Click any link, you'll see real txs.**
 |---|---|---|
 | Storage | **Live** | Policy config + decision log uploaded through `@0gfoundation/0g-ts-sdk`; root hashes linked above |
 | Chain / Agentic ID | **Live** | `StableRotatorAgent` iNFT deployed and token #0 minted on Galileo; `updateMemory` + `recordDecision` txs linked above |
-| KV | **Read-only probe wired** | Public hackathon KV node is queried; signed write path is intentionally stubbed until the tx shape is documented |
+| KV | **Read-only probe wired** | Public testnet KV node is queried; signed write path is intentionally stubbed until the tx shape is documented |
 | Compute | **Scaffolded, not live** | Wrapper/scripts exist, but tested broker contracts/providers were non-operational for this Galileo flow; deterministic policy is the live verifiable reasoning path |
 | DA | **Not used** | Trove is not a rollup/appchain and does not publish DA blobs; claiming DA integration would be dishonest |
 
@@ -44,9 +44,9 @@ Real Galileo testnet artifacts. **Click any link, you'll see real txs.**
 
 **Why this is not just hardcoded rules with sponsor logos.** The live alpha source is deliberately a deterministic rule, not an LLM. That is the right choice for fund movement: the policy must be reproducible, testable, and able to say "hold." 0G is used where determinism needs a public audit trail: policy config and decision memory live on 0G Storage, and the iNFT owns the agent identity, memory pointer, and clone lineage. KeeperHub is used where the rule needs external execution: schedule the check, retry failed RPCs, manage nonce/gas, and eventually sign tx nodes through its Turnkey organization wallet. If this were only a one-off dashboard, 0G/KeeperHub would be overkill; for a long-running paid agent, they make the rule accountable and executable.
 
-**Where AI fits, honestly.** Trove is an agent because it loops, observes, decides, logs, sells decisions, and can be externally executed. It is not claiming live LLM/0G Compute inference. Future AI/Compute belongs above the deterministic core: explaining why a strategy is risky, summarizing cycles, detecting anomalous yield spikes, or proposing policy knob changes. The execution rule stays deterministic because that is what users and judges can verify.
+**Where AI fits, honestly.** Trove is an agent because it loops, observes, decides, logs, sells decisions, and can be externally executed. It is not claiming live LLM/0G Compute inference. Future AI/Compute belongs above the deterministic core: explaining why a strategy is risky, summarizing cycles, detecting anomalous yield spikes, or proposing policy knob changes. The execution rule stays deterministic because that is what users can verify.
 
-**Where KeeperHub/MEV-style infra fits, honestly.** KeeperHub is automation/reliability, not a source of yield and not live MEV protection. The point is to turn "should move" into a safe execution workflow: timed trigger → read-only verdict → branch → tx node only if profitable → memory commit. MEV/private-orderflow routing would be a production upgrade for the tx node; the current submission proves the workflow boundary and payment integration without pretending that unattended fund movement is live.
+**Where KeeperHub/MEV-style infra fits, honestly.** KeeperHub is automation/reliability, not a source of yield and not live MEV protection. The point is to turn "should move" into a safe execution workflow: timed trigger → read-only verdict → branch → tx node only if profitable → memory commit. MEV/private-orderflow routing would be a production upgrade for the tx node; the current implementation proves the workflow boundary and payment integration without pretending that unattended fund movement is live.
 
 **Why it fits the 0G showcase pattern.** Past highlighted 0G builds lean into verifiable agent loops: agents use 0G Compute or deterministic reasoning, store memory/proofs on 0G Storage, and expose clear on-chain execution or approval boundaries. Trove follows that pattern with a reproducible policy function, an append-only decision log on 0G Storage, an iNFT identity on 0G Chain, and a KeeperHub workflow that can automate the safe parts while leaving fund movement behind explicit calldata adapters.
 
@@ -146,7 +146,7 @@ no X-PAYMENT
   payTo: agent wallet or RoyaltyRouter
 ```
 
-The paid path verifies an EIP-3009 `TransferWithAuthorization` signature locally with `ethers.verifyTypedData`. It does not yet submit the USDC transfer to a facilitator; that is the production settlement step. The reason this still matters for the hackathon is composability: another agent can discover the price, sign the authorization, and unlock the deterministic policy verdict without an account or API key.
+The paid path verifies an EIP-3009 `TransferWithAuthorization` signature locally with `ethers.verifyTypedData`. It does not yet submit the USDC transfer to a facilitator; that is the production settlement step. The reason this matters is composability: another agent can discover the price, sign the authorization, and unlock the deterministic policy verdict without an account or API key.
 
 ### KeeperHub: external execution boundary
 
@@ -167,7 +167,7 @@ Current safe live path is read-only decisioning + logging. Unattended tx executi
 | Wallet / key | Role | Current use |
 |---|---|---|
 | User wallet via Privy | User identity and future permissioning | Demo wallet UX; not replaced by KeeperHub |
-| `PRIVATE_KEY` runtime wallet | Hackathon signer for 0G uploads, iNFT updates, x402 local signatures | Used for verified artifacts and scripts |
+| `PRIVATE_KEY` runtime wallet | Runtime signer for 0G uploads, iNFT updates, x402 local signatures | Used for verified artifacts and scripts |
 | KeeperHub Turnkey org wallet | Future workflow tx executor | Required only for KeeperHub tx nodes, not for read-only calls |
 
 This separation is deliberate: the agent can publish/verifiably sell decisions without custodying user funds. Fund movement should move later through a scoped smart-account permission or explicitly funded execution wallet.
@@ -223,7 +223,7 @@ This separation is deliberate: the agent can publish/verifiably sell decisions w
 
 ```bash
 git clone <repo>
-cd ethglobal-openagents-2
+cd autoyield-openagent
 npm install --legacy-peer-deps   # React 19 / wagmi peer-dep conflict
 cp .env.example .env.local       # add PRIVATE_KEY (Galileo testnet)
 npm run dev                       # http://localhost:3000
@@ -261,7 +261,7 @@ npm run og:deploy-router    # deploys RoyaltyRouter.sol
 | Smart contracts | Solidity 0.8.27 · OpenZeppelin v5 · Hardhat 2.28 |
 | 0G Storage | `@0gfoundation/0g-ts-sdk@1.2.6` (Indexer + ZgFile + merkleTree) |
 | 0G Compute | `@0glabs/0g-serving-broker@2.0.0` wrapper present; not a live dependency |
-| 0G KV | Public hackathon node JSON-RPC at `178.238.236.119:6789` (read-only probe) |
+| 0G KV | Public testnet node JSON-RPC at `178.238.236.119:6789` (read-only probe) |
 | Yields data | DeFi Llama API (`/pools` + `/chart/{poolId}`) |
 | KeeperHub | REST API at `app.keeperhub.com/api` + custom EIP-3009 x402v2 client (`src/keeperhub.ts`) |
 | Sim engine | Pure TS, deterministic per-seed `mulberry32` PRNG, real DeFiLlama history overlay |
