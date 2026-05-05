@@ -45,5 +45,9 @@ USER nextjs
 
 EXPOSE 3000
 
-# No HEALTHCHECK — let CapRover/Swarm use its own TCP-port readiness.
+# Real healthcheck against /api/health — Swarm restarts unhealthy tasks.
+# TCP-port readiness misses OOM-during-request and event-loop stalls.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/api/health > /dev/null || exit 1
+
 CMD ["node", "server.js"]
