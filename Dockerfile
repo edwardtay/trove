@@ -45,9 +45,11 @@ USER nextjs
 
 EXPOSE 3000
 
-# Real healthcheck against /api/health — Swarm restarts unhealthy tasks.
-# TCP-port readiness misses OOM-during-request and event-loop stalls.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/api/health > /dev/null || exit 1
+# No Docker HEALTHCHECK: it caused crash loops on this CapRover instance.
+# /api/health under load can take >5s (downstream RPC stalls to 0G/Base
+# during cold start), Swarm marks unhealthy, restarts mid-init, next probe
+# fails the same way - infinite loop ending in 502 from CapRover's nginx.
+# CapRover supervises lifecycle via TCP-port readiness anyway; that's
+# enough for this app.
 
 CMD ["node", "server.js"]
